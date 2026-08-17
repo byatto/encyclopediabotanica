@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Encyclopedia Botanica</title>
+<meta name="description" content="A personal, offline-first houseplant care catalogue — install it on your phone.">
+<meta name="theme-color" content="#5a6b4d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+
+<!--
+  ================================================================
+  ENCYCLOPEDIA BOTANICA — mobile app shell
+  ================================================================
+  This is the installable PWA: search your plants, tap through to
+  a phone-friendly detail page, and edit a care log that's saved
+  on-device (see js/store.js). Plant reference data lives in
+  js/plants.js, shared with print.html (the A4/PDF export view).
+
+  See README.md for the full file layout and how to install this
+  as an app on Android (Chrome → menu → "Install app" / "Add to
+  Home screen").
+  ================================================================
+-->
+</head>
+<body>
+
+<div id="install-banner" class="install-banner" hidden>
+  <p>Install Encyclopedia Botanica on your phone for full offline access.</p>
+  <button id="btn-install" class="btn btn-primary">Install</button>
+  <button id="btn-dismiss-install" class="btn btn-ghost" aria-label="Dismiss">Not now</button>
+</div>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <h1 class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100"><path d="M50 15 C66 15 80 30 80 52 C80 74 66 90 48 90 C34 90 22 78 22 60 C22 40 34 22 50 15 Z" fill="currentColor"/></svg>
+      </span>
+      Encyclopedia Botanica
+    </h1>
+    <button id="btn-about" class="icon-btn" aria-label="About & settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/>
+        <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+        <circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+  </div>
+  <div class="search-row">
+    <input id="search" type="search" placeholder="Search plants, family, care notes…" aria-label="Search plants" enterkeyhint="search">
+  </div>
+</header>
+
+<!-- ============================================================
+     LIST VIEW
+     ============================================================ -->
+<main id="view-list" class="view">
+  <div id="result-count" class="result-count" aria-live="polite"></div>
+  <ul id="plant-list" class="plant-list"></ul>
+  <p id="empty-state" class="empty-state" hidden>No plants match "<span></span>". Try a different search, or add one via <code>new-plant-prompt.md</code>.</p>
+</main>
+
+<!-- ============================================================
+     DETAIL VIEW
+     ============================================================ -->
+<main id="view-detail" class="view" hidden>
+  <button id="btn-back" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+    Back
+  </button>
+  <article id="detail-content"></article>
+</main>
+
+<!-- ============================================================
+     ABOUT / SETTINGS VIEW
+     ============================================================ -->
+<main id="view-about" class="view" hidden>
+  <button class="back-btn" onclick="location.hash='#/'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+    Back
+  </button>
+  <div class="container">
+    <div class="about-section">
+      <h2>Encyclopedia Botanica</h2>
+      <p>A personal, offline-first houseplant care catalogue. Reference data (family, care requirements, pests, origins) lives in <code>js/plants.js</code> and is the same on every device. Anything you fill in here — acquired dates, locations, notes — is saved only on this device.</p>
+    </div>
+
+    <div class="about-section">
+      <h2>Install</h2>
+      <p>On Android Chrome: tap the ⋮ menu → <strong>Add to Home screen</strong> / <strong>Install app</strong>. Once installed it works fully offline.</p>
+      <button id="btn-install-about" class="btn btn-primary" hidden>Install now</button>
+    </div>
+
+    <div class="about-section">
+      <h2>Your data</h2>
+      <div id="storage-notice" class="notice warn" hidden>
+        This browser isn't persisting saved data (private/incognito mode, or storage is disabled) — anything you log will be lost when you close the app.
+      </div>
+      <p>Care-log entries and notes live in this browser's local storage, on this device only. Export a backup occasionally, especially before reinstalling or switching phones.</p>
+      <div class="about-actions">
+        <button id="btn-export" class="btn btn-block">Export data (.json backup)</button>
+        <label class="btn btn-block" for="import-file" style="cursor:pointer;">Import data (merge from backup)</label>
+        <input id="import-file" type="file" accept="application/json,.json" class="visually-hidden">
+        <button id="btn-clear" class="btn btn-danger btn-block">Clear all saved data</button>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h2>Print / PDF</h2>
+      <p>Need paper copies or a PDF of the full catalogue? Use the print view — same data, A4 layout.</p>
+      <a href="print.html" class="btn btn-block" style="text-decoration:none;display:flex;">Open print view</a>
+    </div>
+
+    <div class="about-section">
+      <h2>Adding a plant</h2>
+      <p>Copy <code>new-plant-prompt.md</code> into any AI assistant, paste the generated record into <code>js/plants.js</code>, then reload. Full instructions are in that file and in <code>README.md</code>.</p>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="js/plants.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

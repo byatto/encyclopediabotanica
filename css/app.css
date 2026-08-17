@@ -1,0 +1,530 @@
+/* =============================================================
+   app.css — mobile-first styles for the Encyclopedia Botanica app
+   (index.html). Shares the same design tokens and typographic
+   language as print.html so the two feel like one product.
+   ============================================================= */
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/inter-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Newsreader";
+  src: url("../fonts/newsreader-italic-variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --ink:        #2a2d28;
+  --soft:       #5c5f57;
+  --faint:      #9a9d92;
+  --hair:       #e3e4dd;
+  --hair-soft:  #eeefe9;
+  --paper:      #fcfcf9;
+  --surface:    #ffffff;
+  --green:      #5a6b4d;
+  --green-soft: #7d8a6f;
+  --danger:     #a24a3f;
+  --focus:      #3a6ea5;
+
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:        #eef0ea;
+    --soft:       #c3c6bc;
+    --faint:      #83877c;
+    --hair:       #383b33;
+    --hair-soft:  #2b2e27;
+    --paper:      #1b1d18;
+    --surface:    #232620;
+    --green:      #93ac80;
+    --green-soft: #7d9469;
+    --danger:     #d98d80;
+    --focus:      #7fb1e0;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* The [hidden] attribute must always win over class-based display
+   rules below (e.g. .plant-list, .thumb-placeholder), which share
+   the same specificity and would otherwise lose to source order. */
+[hidden] { display: none !important; }
+
+html {
+  background: var(--paper);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  padding-bottom: calc(24px + var(--safe-bottom));
+}
+
+.latin { font-family: "Newsreader", Georgia, serif; font-style: italic; }
+
+a { color: var(--green); }
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Shared page container ─────────────────────────────────── */
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* ── Top bar ───────────────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--paper);
+  padding-top: var(--safe-top);
+  border-bottom: 1px solid var(--hair);
+}
+
+.topbar-row {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 14px 16px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark { width: 26px; height: 26px; color: var(--green); flex-shrink: 0; }
+.brand-mark svg { display: block; width: 100%; height: 100%; }
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--soft);
+  flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--green); color: var(--green); }
+.icon-btn svg { width: 19px; height: 19px; }
+
+.search-row { max-width: 640px; margin: 0 auto; padding: 0 16px 14px; }
+
+#search {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  outline: none;
+}
+#search:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(90,107,77,0.15); }
+#search::placeholder { color: var(--faint); }
+
+.result-count {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px 4px;
+  font-size: 12px;
+  color: var(--faint);
+  letter-spacing: 0.02em;
+}
+
+/* ── View switching ───────────────────────────────────────── */
+.view[hidden] { display: none; }
+
+/* ── Plant list / cards ───────────────────────────────────── */
+.plant-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0 16px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plant-card-link {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+.plant-card-link:active { border-color: var(--green); }
+
+.thumb {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--hair-soft);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--faint);
+}
+.thumb-placeholder svg { width: 28px; height: 28px; }
+
+.plant-card-body { flex: 1; min-width: 0; padding-top: 1px; }
+
+.plant-card-kicker {
+  font-size: 7.5pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.plant-card-latin {
+  font-family: "Newsreader", Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plant-card-common {
+  font-size: 12.5px;
+  color: var(--soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.plant-card-common .qualifier { color: var(--faint); }
+.plant-card-common .qualifier::before { content: " · "; }
+
+.plant-card-badges { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+.badge {
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--hair-soft);
+  color: var(--soft);
+  white-space: nowrap;
+}
+
+.empty-state {
+  max-width: 640px;
+  margin: 40px auto;
+  padding: 0 16px;
+  text-align: center;
+  color: var(--faint);
+  font-size: 14px;
+}
+
+/* ── Back button ──────────────────────────────────────────── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 16px 0;
+  padding: 7px 12px 7px 8px;
+  background: transparent;
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  color: var(--soft);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.back-btn svg { width: 15px; height: 15px; }
+.back-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* ── Detail view ──────────────────────────────────────────── */
+#detail-content { max-width: 640px; margin: 0 auto; padding: 14px 16px 40px; }
+
+.d-kicker {
+  font-size: 8pt;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.d-latin {
+  font-family: "Newsreader", Georgia, serif;
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1.15;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.d-common { font-size: 14px; color: var(--soft); margin-top: 6px; }
+.d-common .qualifier { color: var(--faint); }
+.d-common .qualifier::before { content: " · "; }
+
+.d-photo {
+  margin-top: 14px;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--hair-soft);
+  border: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.d-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.d-photo .thumb-placeholder svg { width: 44px; height: 44px; }
+
+.glance-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.glance-tile {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+}
+.glance-tile dt {
+  font-size: 7.5pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  margin: 0 0 3px;
+}
+.glance-tile dd { margin: 0; font-size: 13.5px; color: var(--ink); font-weight: 500; }
+
+.d-section { margin-top: 22px; }
+.d-section h2 {
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 600;
+  margin: 0 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--hair);
+}
+.d-section p { margin: 0; font-size: 14.5px; color: var(--soft); line-height: 1.6; }
+.d-section ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: var(--soft); line-height: 1.6; }
+.d-section li { margin-bottom: 3px; }
+
+/* ── Care log (editable) ─────────────────────────────────── */
+.log-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 12px;
+}
+.log-field { grid-column: span 1; }
+.log-field.wide { grid-column: span 2; }
+
+.log-field label {
+  display: block;
+  font-size: 7.5pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.log-field input,
+.log-field textarea {
+  width: 100%;
+  padding: 8px 0 6px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hair);
+  outline: none;
+  resize: vertical;
+}
+.log-field input:focus,
+.log-field textarea:focus { border-bottom-color: var(--green); }
+.log-field textarea { min-height: 70px; line-height: 1.5; }
+
+.log-status {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--faint);
+  min-height: 14px;
+}
+.log-status.saved { color: var(--green); }
+
+.text-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--faint);
+  font-size: 12.5px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.text-link-btn:hover { color: var(--danger); }
+
+.d-footer-links {
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hair);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+.d-footer-links a { text-decoration: none; font-weight: 600; }
+.d-footer-links a:hover { text-decoration: underline; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid var(--hair);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--green); color: var(--green); }
+.btn-primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn-primary:hover { opacity: 0.92; color: #fff; }
+.btn-danger { color: var(--danger); border-color: var(--hair); }
+.btn-danger:hover { border-color: var(--danger); }
+.btn-block { width: 100%; }
+
+/* ── About / settings view ───────────────────────────────── */
+#view-about .container { padding-top: 16px; }
+.about-section { margin-top: 22px; }
+.about-section h2 {
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.about-section p { font-size: 13.5px; color: var(--soft); line-height: 1.6; margin: 0 0 10px; }
+.about-actions { display: flex; flex-direction: column; gap: 8px; }
+
+.notice {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--hair-soft);
+  border: 1px solid var(--hair);
+  font-size: 12.5px;
+  color: var(--soft);
+}
+.notice.warn { border-color: #d8b98a; background: rgba(216,185,138,0.16); }
+
+/* ── Install banner ──────────────────────────────────────── */
+.install-banner {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 20;
+  padding: 12px 16px calc(12px + var(--safe-bottom));
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+}
+.install-banner[hidden] { display: none; }
+.install-banner p { margin: 0; flex: 1; line-height: 1.4; }
+.install-banner button { flex-shrink: 0; }
+.install-banner .btn-primary { background: var(--green); border-color: var(--green); }
+.install-banner .btn-ghost {
+  background: transparent; border: 1px solid rgba(252,252,249,0.3); color: var(--paper);
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + var(--safe-bottom));
+  transform: translateX(-50%) translateY(12px);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 30;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Wider screens (tablets) ─────────────────────────────── */
+@media (min-width: 560px) {
+  .plant-list { grid-template-columns: 1fr 1fr; display: grid; }
+}

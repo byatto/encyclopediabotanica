@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Houseplant Catalogue — Print</title>
+
+<!--
+  ================================================================
+  HOUSEPLANT CATALOGUE — PRINT / PDF VIEW
+  ================================================================
+  HOW THIS WORKS
+  --------------
+  This file is the A4 print template and stylesheet. It does not
+  contain any plant data — that lives in js/plants.js, shared with
+  the mobile app (index.html).
+
+  For day-to-day browsing on a phone, use index.html instead — it's
+  the installable app with search and an editable care log. Use
+  this page only when you want a paper copy or a PDF.
+
+  To print: Chrome or Edge → Print → Save as PDF → A4 → tick
+    "Background graphics".
+  To save a standalone copy: click "Save frozen copy" in the bar
+    at the top of this page (it disappears when printing).
+
+  FILE LAYOUT
+  -----------
+  encyclopediabotanica/
+  ├── index.html             ← mobile app (install this as the PWA)
+  ├── print.html              ← this file
+  ├── manifest.webmanifest
+  ├── sw.js
+  ├── js/
+  │   ├── plants.js           ← your plant data (edit this)
+  │   ├── store.js
+  │   ├── app.js
+  │   └── print-render.js
+  ├── css/
+  │   └── app.css
+  ├── fonts/                  ← self-hosted font files (do not move)
+  │   ├── inter-variable.woff2
+  │   └── newsreader-italic-variable.woff2
+  ├── icons/                  ← PWA install icons
+  ├── photos/                 ← your plant photos
+  └── new-plant-prompt.md     ← AI prompt for generating new records
+  ================================================================
+-->
+
+<style>
+  /* ============================================================
+     FONTS
+     Self-hosted so the catalogue works offline forever.
+     Inter  = body text, labels, everything except Latin names.
+     Newsreader italic = Latin species names only.
+     ============================================================ */
+
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/inter-variable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "Newsreader";
+    src: url("fonts/newsreader-italic-variable.woff2") format("woff2");
+    font-weight: 400 700;
+    font-style: italic;
+    font-display: swap;
+  }
+
+  /* ============================================================
+     DESIGN TOKENS — shared visual language with the mobile app.
+     ============================================================ */
+  :root {
+    --ink:        #2a2d28;
+    --soft:       #5c5f57;
+    --faint:      #9a9d92;
+    --hair:       #e3e4dd;
+    --hair-soft:  #eeefe9;
+    --paper:      #fcfcf9;
+    --green:      #5a6b4d;
+    --green-soft: #7d8a6f;
+  }
+
+  /* ============================================================
+     BASE
+     ============================================================ */
+  * { box-sizing: border-box; }
+
+  html { background: #d8d9d2; } /* screen: warm grey "desk" */
+
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Latin species names — Newsreader italic everywhere they appear */
+  .latin {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+  }
+
+  /* ============================================================
+     PAGE SHELL
+     One <article class="page"> per plant, A4 sized.
+     ============================================================ */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 22mm 22mm 18mm;
+    margin: 16px auto;
+    background: var(--paper);
+    position: relative;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.14);
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-child { page-break-after: auto; }
+  .page { scroll-margin-top: 16px; }
+
+  /* ── Header ── */
+  .head { margin-bottom: 11mm; }
+
+  .kicker {
+    font-size: 8pt;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .latin-name {
+    font-size: 31pt;
+    line-height: 1.08;
+    color: var(--ink);
+    font-weight: 400;
+    margin: 0;
+  }
+
+  .common-name {
+    font-size: 11pt;
+    color: var(--soft);
+    font-weight: 400;
+    margin-top: 9px;
+    letter-spacing: 0.01em;
+  }
+
+  /* The grey qualifier after the common name — e.g. "×3" or synonyms */
+  .qualifier {
+    color: var(--faint);
+    font-weight: 400;
+  }
+  .qualifier::before {
+    content: "·";
+    margin: 0 8px;
+    color: var(--hair);
+  }
+
+  /* ── Top grid: photo left, quick-glance panel right ── */
+  .top {
+    display: grid;
+    grid-template-columns: 1fr 58mm;
+    gap: 11mm;
+    margin-bottom: 11mm;
+  }
+
+  /* Photo box — shows image if set, otherwise a quiet placeholder */
+  .photo {
+    aspect-ratio: 4 / 3;
+    background: var(--hair-soft);
+    border: 1px solid var(--hair);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* Placeholder hint shown when no photo is set */
+  .photo-placeholder {
+    color: var(--faint);
+    font-size: 9pt;
+    text-align: center;
+    padding: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Quick-glance panel — right-hand column */
+  .glance { padding-top: 2px; }
+
+  .glance .g-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--hair-soft);
+    font-size: 9.5pt;
+  }
+  .glance .g-row:first-child { padding-top: 0; }
+
+  .glance dt {
+    color: var(--faint);
+    font-size: 8pt;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    align-self: center;
+  }
+  .glance dd {
+    margin: 0;
+    text-align: right;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ── Care sections — two-column flow ── */
+  .sections {
+    columns: 2;
+    column-gap: 11mm;
+    margin-bottom: 2mm;
+  }
+
+  section {
+    break-inside: avoid;
+    margin-bottom: 7mm;
+  }
+
+  section h2 {
+    font-size: 8pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+    font-weight: 600;
+    margin: 0 0 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  section p,
+  section ul {
+    margin: 0;
+    font-size: 9.5pt;
+    color: var(--soft);
+    line-height: 1.55;
+  }
+
+  section ul {
+    padding-left: 15px;
+  }
+
+  section li { margin-bottom: 2px; }
+
+  /* ── Log strip — pinned to page bottom ── */
+  .log {
+    margin-top: auto;           /* pushes log strip to the page foot */
+    border-top: 1px solid var(--hair);
+    padding-top: 7mm;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7mm 9mm;
+  }
+
+  .log .l-item { font-size: 9pt; }
+
+  .log dt {
+    font-size: 7.5pt;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .log dd {
+    margin: 0;
+    color: var(--soft);
+    min-height: 14px;
+    border-bottom: 1px solid var(--hair-soft);
+    padding-bottom: 5px;
+  }
+
+  /* Source and Pot/Soil span two columns */
+  .log .l-wide { grid-column: span 2; }
+
+  /* ── Ruled notes block ── */
+  .notes-block { margin-top: 6mm; }
+
+  .notes-block h2 {
+    font-size: 7.5pt;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 500;
+    margin: 0 0 6px;
+  }
+
+  /* Ruled lines via a repeating gradient — no extra elements needed */
+  .notes-lines {
+    height: 18mm;
+    background-image: repeating-linear-gradient(
+      var(--paper),
+      var(--paper) 8mm,
+      var(--hair-soft) 8mm,
+      var(--hair-soft) calc(8mm + 0.7px)
+    );
+  }
+
+  /* ── Page footer ── */
+  .foot {
+    margin-top: 7mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: var(--faint);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--hair);
+    padding-top: 6px;
+  }
+
+  /* ============================================================
+     HELPER BAR
+     Screen-only. Hidden when printing.
+     ============================================================ */
+  .helper {
+    max-width: 210mm;
+    margin: 18px auto 0;
+    padding: 13px 18px;
+    background: #fff;
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    font-size: 12.5px;
+    color: var(--soft);
+    line-height: 1.7;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 0;
+  }
+
+  .helper code {
+    background: var(--hair-soft);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  .helper strong { color: var(--ink); font-weight: 600; }
+  .helper a { color: var(--green); font-weight: 600; text-decoration: none; }
+  .helper a:hover { text-decoration: underline; }
+
+  /* "Save frozen copy" button — sits at the right of the helper bar */
+  #btn-freeze {
+    margin-left: auto;
+    padding: 5px 14px;
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #btn-freeze:hover { border-color: var(--green); color: var(--green); }
+
+  /* ============================================================
+     PRINT OVERRIDES
+     ============================================================ */
+  @media print {
+    html, body { background: #fff; }
+
+    .page {
+      margin: 0;
+      box-shadow: none;
+      width: auto;
+      min-height: auto;
+    }
+
+    /* Hide the helper bar and freeze button entirely when printing */
+    .helper { display: none; }
+
+    @page { size: A4; margin: 0; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- Helper bar — screen only, hidden in print -->
+<div class="helper">
+  <strong>Print:</strong>&nbsp;Chrome or Edge → Print → Save as PDF → A4 → tick <em>Background graphics</em>.
+  &nbsp;|&nbsp;
+  <strong>Photos:</strong>&nbsp;drop files in <code>photos/</code>, set <code>photo: "photos/filename.jpg"</code> in js/plants.js.
+  &nbsp;|&nbsp;
+  <strong>Add a plant:</strong>&nbsp;use <code>new-plant-prompt.md</code> with any AI, paste the result into js/plants.js.
+  &nbsp;|&nbsp;
+  <a href="index.html">← Back to app</a>
+  <button id="btn-freeze">Save frozen copy</button>
+</div>
+
+<!-- ============================================================
+     PLANT PAGES
+     The renderer below builds one <article> here per plant record.
+     ============================================================ -->
+<div id="catalogue"></div>
+
+
+<!-- plants.js must be loaded before the renderer script below.
+     It declares the global `plants` array. -->
+<script src="js/plants.js"></script>
+<script src="js/store.js"></script>
+<script src="js/print-render.js"></script>
+</body>
+</html>
