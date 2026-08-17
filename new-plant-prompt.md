@@ -16,6 +16,9 @@ Use this exact structure. Every field is a string unless stated otherwise.
 
 ```
 {
+  id:        "",          // short, unique, url-safe slug of the latin
+                          // name: lowercase, spaces/punctuation → "-".
+                          // e.g. "Monstera deliciosa" → "monstera-deliciosa"
   family:    "",          // botanical family name, e.g. "Araceae"
   latin:     "",          // full Latin name, e.g. "Monstera deliciosa"
   common:    "",          // common name, e.g. "Swiss Cheese Plant"
@@ -51,6 +54,7 @@ Use this exact structure. Every field is a string unless stated otherwise.
 
 ## Style rules — follow these precisely
 
+- **id:** lowercase slug derived from the Latin name only — letters, numbers and single hyphens, no spaces or punctuation. Must be different from every id already in plants.js.
 - **Language:** UK English throughout (e.g. "centre" not "center", "colour" not "color").
 - **Tone:** Concise and practical. Written for a home grower, not a botanist.
 - **Sentence case:** Section text uses sentence case, not title case.
@@ -101,6 +105,7 @@ Use this exact structure. Every field is a string unless stated otherwise.
 
 ```
 {
+  id:        "monstera-deliciosa",
   family:    "Araceae",
   latin:     "Monstera deliciosa",
   common:    "Swiss Cheese Plant",

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Encyclopedia Botanica leaf mark. Edit this file and re-run the
+       rasteriser (see README.md → "Regenerating icons") to update
+       icons/icon-*.png after a change. -->
+  <path d="M50 15 C66 15 80 30 80 52 C80 74 66 90 48 90 C34 90 22 78 22 60 C22 40 34 22 50 15 Z" fill="#5a6b4d"/>
+  <path d="M48 88 C44 68 44 40 52 18" fill="none" stroke="#fcfcf9" stroke-width="3" stroke-linecap="round"/>
+  <path d="M46 60 C40 56 34 54 30 52" fill="none" stroke="#fcfcf9" stroke-width="2" stroke-linecap="round"/>
+  <path d="M54 45 C60 42 66 41 70 40" fill="none" stroke="#fcfcf9" stroke-width="2" stroke-linecap="round"/>
+</svg>

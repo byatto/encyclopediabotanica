@@ -7,7 +7,7 @@
 // 1. Ask an AI to generate a record using new-plant-prompt.md.
 // 2. Paste the object before the final ]; on the last line.
 //    (Add a comma after the previous record's closing brace.)
-// 3. Save this file and refresh catalogue.html in your browser.
+// 3. Save this file and refresh index.html (or print.html) in your browser.
 //
 // EDITING A RECORD
 // ----------------
@@ -17,18 +17,26 @@
 //
 // FIELD NOTES
 // -----------
+// id         : short, unique, url-safe slug (lowercase, hyphens).
+//              Used for search-engine routing (#plant/<id>) and as
+//              the key for on-device log/notes storage — do not
+//              rename an existing plant's id, or its saved log data
+//              in the app will no longer match it.
 // photo      : relative path, e.g. "photos/my-plant.jpg"
 //              Leave "" for the quiet placeholder box.
 // qualifier  : grey suffix after the common name — synonyms,
 //              quantity notes like "×3", etc. Leave "" to omit.
 // pests      : array of short strings, each becomes a bullet.
-// log.*      : owner fills these in; leave "" for a blank line.
+// log.*      : starting/default values. The app view lets you edit
+//              these on-device (saved in the browser's local
+//              storage) without touching this file.
 // =============================================================
 
 const plants = [
 
   // ── 1. Snake Plant ──────────────────────────────────────────
   {
+    id:        "dracaena-trifasciata",
     family:    "Asparagaceae",
     latin:     "Dracaena trifasciata",
     common:    "Snake Plant",
@@ -65,6 +73,7 @@ const plants = [
 
   // ── 2. Peace Lily ────────────────────────────────────────────
   {
+    id:        "spathiphyllum-wallisii",
     family:    "Araceae",
     latin:     "Spathiphyllum wallisii",
     common:    "Peace Lily",
@@ -102,6 +111,7 @@ const plants = [
 
   // ── 3. Giant Peace Lily ──────────────────────────────────────
   {
+    id:        "spathiphyllum-sensation",
     family:    "Araceae",
     latin:     "Spathiphyllum 'Sensation'",
     common:    "Giant Peace Lily",
@@ -138,6 +148,7 @@ const plants = [
 
   // ── 4. Swiss Cheese Plant ────────────────────────────────────
   {
+    id:        "monstera-deliciosa",
     family:    "Araceae",
     latin:     "Monstera deliciosa",
     common:    "Swiss Cheese Plant",
@@ -175,6 +186,7 @@ const plants = [
 
   // ── 5. Devil's Ivy ──────────────────────────────────────────
   {
+    id:        "epipremnum-aureum",
     family:    "Araceae",
     latin:     "Epipremnum aureum",
     common:    "Devil's Ivy / Pothos",
@@ -211,6 +223,7 @@ const plants = [
 
   // ── 6. Weeping Fig ──────────────────────────────────────────
   {
+    id:        "ficus-benjamina",
     family:    "Moraceae",
     latin:     "Ficus benjamina",
     common:    "Weeping Fig",
@@ -247,6 +260,7 @@ const plants = [
 
   // ── 7. Boston Fern ──────────────────────────────────────────
   {
+    id:        "nephrolepis-exaltata",
     family:    "Nephrolepidaceae",
     latin:     "Nephrolepis exaltata",
     common:    "Boston Fern",
@@ -283,6 +297,7 @@ const plants = [
 
   // ── 8. Alocasia zebrina ──────────────────────────────────────
   {
+    id:        "alocasia-zebrina",
     family:    "Araceae",
     latin:     "Alocasia zebrina",
     common:    "Zebra Plant",
@@ -321,6 +336,7 @@ const plants = [
   // ── 9. Alocasia (unidentified) ───────────────────────────────
   // NOTE: species unconfirmed — do not change the hedged wording below.
   {
+    id:        "alocasia-sp",
     family:    "Araceae",
     latin:     "Alocasia sp.",
     common:    "Elephant's Ear",
@@ -357,6 +373,7 @@ const plants = [
 
   // ── 10. Alocasia 'Polly' ─────────────────────────────────────
   {
+    id:        "alocasia-x-amazonica-polly",
     family:    "Araceae",
     latin:     "Alocasia × amazonica 'Polly'",
     common:    "African Mask / Elephant's Ear",
@@ -394,6 +411,7 @@ const plants = [
 
   // ── 11. Orchid ───────────────────────────────────────────────
   {
+    id:        "phalaenopsis-sp",
     family:    "Orchidaceae",
     latin:     "Phalaenopsis sp.",
     common:    "Moth Orchid",
@@ -431,6 +449,7 @@ const plants = [
 
   // ── 12. Ficus Ginseng ────────────────────────────────────────
   {
+    id:        "ficus-microcarpa",
     family:    "Moraceae",
     latin:     "Ficus microcarpa",
     common:    "Ficus Ginseng",
@@ -468,6 +487,7 @@ const plants = [
   // ── 13. Dragon Plant ─────────────────────────────────────────
   // NOTE: species hedged between D. marginata and D. fragrans — do not resolve.
   {
+    id:        "dracaena-marginata",
     family:    "Asparagaceae",
     latin:     "Dracaena marginata",
     common:    "Dragon Plant",
@@ -512,6 +532,7 @@ const plants = [
    ---------------------------------------------------------
 
   {
+    id:        "genus-species",
     family:    "Family name, e.g. Araceae",
     latin:     "Genus species",
     common:    "Common name",
