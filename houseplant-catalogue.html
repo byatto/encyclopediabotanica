@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Houseplant Catalogue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     HOUSEPLANT CATALOGUE
+     One plant per A4 page. Print to PDF from Chrome/Edge:
+     Print > Save as PDF > Paper A4 > Margins Default >
+     tick "Background graphics".
+
+     PHOTOS: put files in the "photos" folder next to this file,
+     then set the src on a plant's <img>, e.g.
+        src="photos/dracaena-1.jpg"
+     Leave src empty to keep the quiet placeholder box.
+
+     NEW PLANT: copy the BLANK TEMPLATE page at the foot of the
+     file, paste it where you want, and fill in the fields.
+     ============================================================ */
+
+  :root {
+    --ink:        #2a2d28;
+    --soft:       #5c5f57;
+    --faint:      #9a9d92;
+    --hair:       #e3e4dd;
+    --hair-soft:  #eeefe9;
+    --paper:      #fcfcf9;
+    --green:      #5a6b4d;
+    --green-soft: #7d8a6f;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: #d8d9d2; }
+
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .latin { font-family: "Newsreader", Georgia, serif; font-style: italic; }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 22mm 22mm 18mm;
+    margin: 16px auto;
+    background: var(--paper);
+    position: relative;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.14);
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  .head { margin-bottom: 11mm; }
+  .kicker {
+    font-size: 8pt; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--faint); font-weight: 500; margin-bottom: 10px;
+  }
+  .latin-name { font-size: 31pt; line-height: 1.08; color: var(--ink); font-weight: 400; margin: 0; }
+  .common-name { font-size: 11pt; color: var(--soft); font-weight: 400; margin-top: 9px; letter-spacing: 0.01em; }
+  .common-name .fam { color: var(--faint); font-weight: 400; }
+  .common-name .fam::before { content: "·"; margin: 0 8px; color: var(--hair); }
+
+  .top { display: grid; grid-template-columns: 1fr 58mm; gap: 11mm; margin-bottom: 11mm; }
+  .photo {
+    aspect-ratio: 4 / 3; background: var(--hair-soft); border: 1px solid var(--hair);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo .ph { color: var(--faint); font-size: 9pt; text-align: center; padding: 12px; letter-spacing: 0.02em; }
+
+  .glance { padding-top: 2px; }
+  .glance .g-row {
+    display: flex; justify-content: space-between; gap: 10px; padding: 7px 0;
+    border-bottom: 1px solid var(--hair-soft); font-size: 9.5pt;
+  }
+  .glance .g-row:first-child { padding-top: 0; }
+  .glance dt { color: var(--faint); font-size: 8pt; letter-spacing: 0.14em; text-transform: uppercase; align-self: center; }
+  .glance dd { margin: 0; text-align: right; color: var(--ink); font-weight: 500; }
+
+  .sections { columns: 2; column-gap: 11mm; margin-bottom: 2mm; }
+  section { break-inside: avoid; margin-bottom: 7mm; }
+  section h2 {
+    font-size: 8pt; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--green); font-weight: 600; margin: 0 0 5px; padding-bottom: 5px;
+    border-bottom: 1px solid var(--hair);
+  }
+  section p, section ul { margin: 0; font-size: 9.5pt; color: var(--soft); line-height: 1.55; }
+  section ul { padding-left: 15px; }
+  section li { margin-bottom: 2px; }
+
+  .log {
+    margin-top: auto; border-top: 1px solid var(--hair); padding-top: 7mm;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 7mm 9mm;
+  }
+  .log .l-item { font-size: 9pt; }
+  .log dt { font-size: 7.5pt; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); font-weight: 500; margin-bottom: 4px; }
+  .log dd { margin: 0; color: var(--soft); min-height: 14px; border-bottom: 1px solid var(--hair-soft); padding-bottom: 5px; }
+  .log .l-wide { grid-column: span 2; }
+
+  .notes-block { margin-top: 6mm; }
+  .notes-block h2 { font-size: 7.5pt; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); font-weight: 500; margin: 0 0 6px; }
+  .notes-lines {
+    height: 18mm;
+    background-image: repeating-linear-gradient(var(--paper), var(--paper) 8mm, var(--hair-soft) 8mm, var(--hair-soft) calc(8mm + 0.7px));
+  }
+
+  .foot {
+    margin-top: 7mm; display: flex; justify-content: space-between;
+    font-size: 7.5pt; color: var(--faint); letter-spacing: 0.18em; text-transform: uppercase;
+    border-top: 1px solid var(--hair); padding-top: 6px;
+  }
+
+  .helper {
+    max-width: 210mm; margin: 18px auto 0; padding: 13px 18px;
+    background: #fff; border: 1px solid var(--hair); border-radius: 3px;
+    font-size: 12.5px; color: var(--soft); line-height: 1.7;
+  }
+  .helper code { background: var(--hair-soft); padding: 1px 6px; border-radius: 3px; color: var(--ink); }
+  .helper strong { color: var(--ink); font-weight: 600; }
+
+  @media print {
+    html, body { background: #fff; }
+    .page { margin: 0; box-shadow: none; width: auto; min-height: auto; }
+    .helper { display: none; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="helper">
+  <strong>Print:</strong> Chrome or Edge → Print → Save as PDF → A4 → tick <em>Background graphics</em>.
+  &nbsp;|&nbsp; <strong>Photos:</strong> drop files in <code>photos/</code> and set each <code>&lt;img src="photos/…"&gt;</code>.
+  &nbsp;|&nbsp; <strong>Add a plant:</strong> copy the blank template page at the end.
+</div>
+
+<!-- ====================== SANSEVIERIA ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Asparagaceae</div>
+    <h1 class="latin-name latin">Dracaena trifasciata</h1>
+    <div class="common-name">Snake Plant <span class="fam">syn. Sansevieria trifasciata · incl. 'Laurentii'</span></div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161338586.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Low–bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>Sparingly</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Any</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>15–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Mild to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Very easy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>Upright, stiff, sword-like leaves. The plain green form and yellow-edged 'Laurentii' share identical care — the variegation is purely cosmetic. Near-indestructible and very tolerant of neglect.</p></section>
+    <section><h2>Growing Cycle</h2><p>Slow grower. Active spring–summer, near-dormant in winter. Spreads by underground rhizomes and produces offsets ("pups") you can divide.</p></section>
+    <section><h2>Watering</h2><p>Let soil dry out fully between waterings — roughly every 2–3 weeks in summer, monthly or less in winter. Overwatering is the main killer. Use a gritty, free-draining mix.</p></section>
+    <section><h2>Feeding</h2><p>Weak balanced feed once a month in spring and summer. None in autumn or winter.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Mealybugs, spider mites (rare)</li><li>Soft, mushy base = root rot from overwatering</li><li>Wrinkled, curling leaves = underwatered</li><li>Brown crispy tips = erratic watering</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From rocky, arid regions of tropical West Africa — adapted to drought and poor soils, which is why it copes so well indoors. Uses CAM photosynthesis, releasing oxygen at night, and featured in NASA's clean-air study. Leaf fibres once made bowstrings, hence "bowstring hemp".</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Division / pups</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Dracaena trifasciata</span></div>
+</article>
+
+<!-- ====================== PEACE LILY ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Araceae</div>
+    <h1 class="latin-name latin">Spathiphyllum wallisii</h1>
+    <div class="common-name">Peace Lily <span class="fam">&times;3</span></div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161240145.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Medium, indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>Keep moist</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Moderate–high</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>18–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Easy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>Glossy dark leaves with elegant white "flowers" — actually a spathe, a modified leaf, around a central spadix. Famously communicative: droops dramatically when thirsty and recovers fast.</p></section>
+    <section><h2>Growing Cycle</h2><p>Grows year-round in warmth, fastest in spring–summer. Flowers most readily in good light; may rest in low winter light. Clump-forming — divide when pot-bound.</p></section>
+    <section><h2>Watering</h2><p>Keep consistently moist, not waterlogged; water when the top 2–3cm feels dry. Sensitive to fluoride/chlorine — stand tap water or use filtered/rainwater to avoid brown tips.</p></section>
+    <section><h2>Feeding</h2><p>Balanced feed every 4–6 weeks in spring and summer; ease off in winter.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Dramatic wilting = needs water (recovers fast)</li><li>Brown tips = tap-water chemicals or dry air</li><li>Yellow leaves = overwatering or age</li><li>No flowers = too little light</li><li>Watch mealybugs &amp; spider mites</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From shaded rainforest floors of Central and South America — warm, humid, low-light understorey. One of NASA's top air-purifiers, and it thrives in bathrooms thanks to the humidity.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Division</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Spathiphyllum wallisii</span></div>
+</article>
+
+<!-- ====================== GIANT PEACE LILY ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Araceae</div>
+    <h1 class="latin-name latin">Spathiphyllum 'Sensation'</h1>
+    <div class="common-name">Giant Peace Lily</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_160442627.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Medium, indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>Keep moist</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Moderate–high</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>18–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Easy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>The largest peace lily cultivar, with broad, deeply ribbed leaves that can top a metre. Same care as standard peace lilies but appreciates more space, a larger pot and more water to match its size.</p></section>
+    <section><h2>Growing Cycle</h2><p>Vigorous in spring–summer; can become a substantial floor specimen. Flowers in good light, slows in winter.</p></section>
+    <section><h2>Watering</h2><p>Keep evenly moist; its larger leaf area transpires more, so it drinks more than smaller forms. Filtered or stood water reduces brown tips. Never leave standing in water.</p></section>
+    <section><h2>Feeding</h2><p>Balanced feed every 4 weeks in spring and summer; ease off in winter.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Wilting = thirsty</li><li>Brown tips = water chemicals or dry air</li><li>Yellowing = overwatering</li><li>Wipe the big leaves to keep pores clear</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>Bred from tropical American Spathiphyllum of humid, shaded understorey. 'Sensation' is the giant of the genus and the most shade-tolerant large foliage plant commonly sold — almost architectural with its ribbed leaves.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Division</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Spathiphyllum 'Sensation'</span></div>
+</article>
+
+<!-- ====================== SWISS CHEESE PLANT ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Araceae</div>
+    <h1 class="latin-name latin">Monstera deliciosa</h1>
+    <div class="common-name">Swiss Cheese Plant</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161307639.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Moderate–high</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>18–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Easy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>Iconic glossy leaves that develop holes and splits (fenestrations) as the plant matures. A climbing aroid that benefits from a moss pole for support and larger leaves.</p></section>
+    <section><h2>Growing Cycle</h2><p>Fast in spring–summer with the right light. Juvenile leaves are solid; fenestration increases with maturity and light. Sends out aerial roots — guide them to the pole or pot.</p></section>
+    <section><h2>Watering</h2><p>Water when the top 3–5cm of soil is dry, then drain fully — roughly weekly in summer, less in winter. Dislikes soggy roots.</p></section>
+    <section><h2>Feeding</h2><p>Balanced feed monthly in spring and summer.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Spider mites, mealybugs, scale</li><li>No holes / small leaves = too little light</li><li>Yellow leaves = overwatering</li><li>Brown crispy edges = low humidity / underwatered</li><li>Weeping droplets = normal, often overwatered</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From rainforests of southern Mexico and Central America, where it climbs tree trunks toward light. "deliciosa" refers to its edible ripe fruit, tasting like a fruit-salad blend — though unripe fruit and all other parts are irritant. The holes likely help it withstand downpours and dappled light.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Stem cutting w/ node</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Monstera deliciosa</span></div>
+</article>
+
+<!-- ====================== DEVIL'S IVY ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Araceae</div>
+    <h1 class="latin-name latin">Epipremnum aureum</h1>
+    <div class="common-name">Devil's Ivy / Pothos</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161331098.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Low–bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Any</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>15–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Very easy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>A trailing/climbing vine with heart-shaped leaves, often marbled gold or cream. Tolerant of almost any indoor spot and very forgiving.</p></section>
+    <section><h2>Growing Cycle</h2><p>Fast-growing year-round in warmth. Variegation increases with brighter light. Easy to propagate — cuttings root readily in water.</p></section>
+    <section><h2>Watering</h2><p>Let the top few cm dry, then water thoroughly. Very drought-tolerant; far more forgiving of under- than over-watering. Leaves go limp when genuinely thirsty.</p></section>
+    <section><h2>Feeding</h2><p>Light balanced feed every 4–6 weeks in spring and summer.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Mealybugs, spider mites (uncommon)</li><li>Yellow leaves = overwatering</li><li>Pale / all-green = too little light, losing variegation</li><li>Brown crispy edges = underwatered / dry air</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>Native to the Solomon Islands; naturalised across tropical forests worldwide, climbing trees with aerial roots. Nicknamed "devil's ivy" because it's nearly impossible to kill and stays green even in dark spots. In the wild its leaves grow huge and split like a Monstera.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Water cutting</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Epipremnum aureum</span></div>
+</article>
+
+<!-- ====================== WEEPING FIG ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Moraceae</div>
+    <h1 class="latin-name latin">Ficus benjamina</h1>
+    <div class="common-name">Weeping Fig</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161035672.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Moderate</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>16–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic; irritant sap</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Moderate</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>A small indoor tree with slender, arching branches and glossy pointed leaves, often sold braided or trained. Elegant but famously dramatic — drops leaves at the slightest change.</p></section>
+    <section><h2>Growing Cycle</h2><p>Steady growth in spring–summer; can become a large specimen over years. Slows in winter and responds well to light pruning.</p></section>
+    <section><h2>Watering</h2><p>Water when the top 2–3cm is dry; lightly moist in growth, drier in winter. Hates both drought and soggy roots. Don't let it sit in water.</p></section>
+    <section><h2>Feeding</h2><p>Balanced feed every 4 weeks in spring and summer.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Scale, mealybugs, spider mites — check often</li><li>Sudden leaf drop = moving, draughts, watering change</li><li>Yellow leaves = overwatering or cold</li><li>Keep away from radiators, doors, draughts</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From tropical and subtropical Asia and northern Australia, where it grows into a large tree, sometimes starting as a strangler. Once happy in a spot, leave it put — it dislikes being moved more than almost any houseplant. Another strong NASA air-purifier.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Stem cutting</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Ficus benjamina</span></div>
+</article>
+
+<!-- ====================== BOSTON FERN ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Nephrolepidaceae</div>
+    <h1 class="latin-name latin">Nephrolepis exaltata</h1>
+    <div class="common-name">Boston Fern</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_160737271.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>Keep moist</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>High</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>16–24&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Pet-safe</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Moderate–fussy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>Lush, arching fronds of fine green leaflets — a classic hanging or pedestal fern. Beautiful but thirsty and humidity-hungry, the diva of this collection.</p></section>
+    <section><h2>Growing Cycle</h2><p>Grows steadily in warmth and humidity, fastest in spring–summer. Reproduces by spores in the wild; indoors, divide the clump.</p></section>
+    <section><h2>Watering</h2><p>Keep soil consistently moist — never let it dry out fully. Mist, use a humidity tray, or keep in a bathroom. Dry air is its biggest enemy.</p></section>
+    <section><h2>Feeding</h2><p>Weak balanced feed monthly in the growing season; sensitive to overfeeding.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Crispy brown fronds = dry air / underwatered</li><li>Yellowing leaflets = inconsistent moisture</li><li>Heavy frond drop = low humidity</li><li>Watch for scale and mealybugs</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From humid tropical and subtropical forests and swamps of the Americas, in dappled shade with constant moisture. One of the few popular ferns that's genuinely pet-safe, and an excellent natural humidifier. Ferns predate flowering plants by hundreds of millions of years.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Division</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Nephrolepis exaltata</span></div>
+</article>
+
+<!-- ====================== ALOCASIA ZEBRINA ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Araceae</div>
+    <h1 class="latin-name latin">Alocasia zebrina</h1>
+    <div class="common-name">Zebra Plant</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161417751.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>High</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>18–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Fussy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>Prized for striking zebra-striped petioles topped with arrow-shaped leaves. Dramatic and architectural, but sensitive and demanding of stable conditions.</p></section>
+    <section><h2>Growing Cycle</h2><p>Active spring–summer; may go dormant in winter, dropping leaves and resting from a tuber — normal, keep barely moist and it returns. Grows from a corm and offsets.</p></section>
+    <section><h2>Watering</h2><p>Water when the top few cm dry; lightly moist in growth but never soggy. Sensitive to both rot and drying out. Use filtered/rainwater and a chunky, airy mix.</p></section>
+    <section><h2>Feeding</h2><p>Dilute balanced feed every 2–4 weeks in spring and summer only.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Spider mites — very prone, check undersides</li><li>Yellow leaves = overwatering</li><li>Drooping = thirsty or shocked</li><li>Brown crispy edges = low humidity</li><li>Winter leaf loss = likely dormancy</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>Endemic to the Philippines, in warm, humid, shaded tropical forest. Called the "zebra plant" for its banded stems, and like other Alocasia it can guttate — dripping water droplets from leaf edges in humid conditions.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Offsets / corms</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Alocasia zebrina</span></div>
+</article>
+
+<!-- ====================== ALOCASIA (UNKNOWN) ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Araceae</div>
+    <h1 class="latin-name latin">Alocasia sp.</h1>
+    <div class="common-name">Elephant's Ear <span class="fam">Wentii</span></div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161144889.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>High</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>18–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Fussy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>An Alocasia of unconfirmed variety. The genus shares broadly the same needs: warmth, humidity, bright indirect light and an airy, free-draining mix. Confirm the species and I'll tailor this page.</p></section>
+    <section><h2>Growing Cycle</h2><p>Active spring–summer, often dormant in winter (may drop leaves and rest from a corm). Produces separable offsets.</p></section>
+    <section><h2>Watering</h2><p>Water when the top few cm dry; lightly moist, never soggy. Filtered/rainwater preferred. Reduce in winter, especially if dormant.</p></section>
+    <section><h2>Feeding</h2><p>Dilute balanced feed every 2–4 weeks in spring and summer only.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Spider mites — common across Alocasia</li><li>Yellowing = overwatering</li><li>Drooping = thirst or shock</li><li>Crispy edges = dry air</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>Tropical and subtropical Asia, in warm, humid, shaded forest understorey. "Elephant ears" describes the large, arrow- or shield-shaped leaves. Once you confirm the variety, note distinctive markings here.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Offsets / corms</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Alocasia sp.</span></div>
+</article>
+
+<!-- ====================== ALOCASIA POLLY ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Araceae</div>
+    <h1 class="latin-name latin">Alocasia &times; amazonica 'Polly'</h1>
+    <div class="common-name">African Mask / Elephant's Ear</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_160737271.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>High</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>18–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Fussy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>Compact "African mask" plant with dramatic dark green, arrow-shaped leaves, bold silvery-white veins and wavy edges. A hybrid bred for indoor life but still needs stable warmth and humidity.</p></section>
+    <section><h2>Growing Cycle</h2><p>Active spring–summer; commonly goes semi-dormant in winter and may drop most leaves — don't panic, ease off water and it regrows from the corm. Produces offsets.</p></section>
+    <section><h2>Watering</h2><p>Water when the top 2–3cm dries; lightly moist but never waterlogged. Loves humidity — a tray, grouping or humidifier helps. Filtered/rainwater avoids leaf spotting.</p></section>
+    <section><h2>Feeding</h2><p>Dilute balanced feed every 2–4 weeks in spring and summer only.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Spider mites — very prone in dry air</li><li>Yellow leaves = overwatering</li><li>Drooping = thirsty or cold</li><li>Brown crispy edges = humidity too low</li><li>Winter leaf loss = likely dormancy</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>A cultivated hybrid; parent species come from humid tropical forests of Southeast Asia. The "African mask" name comes from the leaf shape resembling carved ceremonial masks, though the plant isn't African. Constant new growth is the sign of a happy plant.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Offsets / corms</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Alocasia 'Polly'</span></div>
+</article>
+
+<!-- ====================== ORCHID ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Orchidaceae</div>
+    <h1 class="latin-name latin">Phalaenopsis sp.</h1>
+    <div class="common-name">Moth Orchid</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_160637694.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>Weekly soak</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Moderate–high</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>18–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Pet-safe</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Easy–moderate</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>The common white-flowered orchid, almost certainly a Phalaenopsis. An epiphyte — it grows in bark, not soil, with thick aerial roots — and produces long-lasting, elegant blooms.</p></section>
+    <section><h2>Growing Cycle</h2><p>Flowers can last months. After blooming it rests; a cooler night drop in autumn helps trigger a new spike. Grows new leaves and roots in the warm season.</p></section>
+    <section><h2>Watering</h2><p>Water about weekly: soak the bark, drain completely, never leave roots in water. Silvery roots = thirsty; green = well-watered. Reduce slightly in winter.</p></section>
+    <section><h2>Feeding</h2><p>Dilute orchid feed every 2–3 waterings in growth ("weakly, weekly"); flush with plain water monthly.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Mealybugs, scale</li><li>Limp, wrinkled leaves = root watering issue</li><li>Yellow lower leaf = often normal ageing</li><li>No rebloom = more light or a night-temp dip</li><li>Mushy brown roots = rot</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From tropical Southeast Asia, growing on tree trunks and branches as an epiphyte in warm, humid, shaded forest. Moth orchids "breathe" and feed largely through aerial roots, which photosynthesise; with the right care one plant reblooms for many years.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Bark Mix</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Keiki (offshoot)</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Phalaenopsis sp.</span></div>
+</article>
+
+<!-- ====================== FICUS GINSENG ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Moraceae</div>
+    <h1 class="latin-name latin">Ficus microcarpa</h1>
+    <div class="common-name">Ficus Ginseng <span class="fam">&times;2</span></div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161353050.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Moderate</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>16–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic; irritant sap</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Easy–moderate</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>Sold as a bonsai-style tree with a fat, exposed, root-like trunk ("ginseng") and a canopy of small glossy leaves. Tougher and more forgiving than its cousin the weeping fig.</p></section>
+    <section><h2>Growing Cycle</h2><p>Grows in spring–summer; can be pruned to keep its bonsai shape and encourage a denser canopy. Slows in winter. Long-lived.</p></section>
+    <section><h2>Watering</h2><p>Water when the top 2–3cm is dry, then drain. Likes a little humidity — occasional misting helps. Avoid sudden changes in light or position, which trigger leaf drop.</p></section>
+    <section><h2>Feeding</h2><p>Balanced feed every 4 weeks in spring and summer; dilute bonsai feed also works.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Scale, mealybugs, spider mites</li><li>Leaf drop = moving, draughts, watering change</li><li>Yellow leaves = overwatering</li><li>Leggy growth = needs more light</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From tropical Asia and Australasia, where the species becomes a large banyan-type tree with dramatic aerial roots. The swollen "ginseng" trunk is produced by grafting a leafy top onto vigorous nursery roots — not a natural shape. Exudes milky latex when cut.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Cutting (no ginseng base)</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Ficus microcarpa</span></div>
+</article>
+
+<!-- ====================== DRAGON PLANT ====================== -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Asparagaceae</div>
+    <h1 class="latin-name latin">Dracaena marginata</h1>
+    <div class="common-name">Dragon Plant <span class="fam">confirm vs. D. fragrans</span></div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="photos/PXL_20260605_161338586.jpg" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>Medium–bright indirect</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>When top dries</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>Any–moderate</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>16–27&deg;C</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>Toxic to pets</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>Easy</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>"Dragon plant" usually means D. marginata (slim cane, thin red-edged leaves) or D. fragrans (broader leaves, often a "corn plant"). Care is near-identical; confirm yours so the page is exact. Tough, upright, architectural.</p></section>
+    <section><h2>Growing Cycle</h2><p>Slow, steady growth, fastest in spring–summer. Forms a woody cane over time and can be cut back to encourage branching. Lower leaves naturally yellow and drop as it lengthens.</p></section>
+    <section><h2>Watering</h2><p>Let the top 3–5cm dry, then water and drain. Drought-tolerant; happier slightly dry than soggy. Sensitive to fluoride — use filtered or stood water to limit brown tips.</p></section>
+    <section><h2>Feeding</h2><p>Balanced feed every 4–6 weeks in spring and summer.</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>Spider mites, scale, mealybugs</li><li>Brown leaf tips = fluoride or dry air</li><li>Yellow lower leaves = usually normal; if widespread, overwatering</li><li>Soft cane = root rot</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>From Madagascar and tropical Africa, in warm, semi-arid to forest-edge conditions. The "dragon tree" name traces to related species whose red resin was sold as "dragon's blood". Another reliable NASA air-purifier.</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>Cane cutting</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>Dracaena marginata</span></div>
+</article>
+
+<!-- ============================================================
+     ==================  BLANK TEMPLATE  ========================
+     Copy this whole <article>…</article> block to add a plant.
+     Set <img src> to a file in /photos, or leave blank for the
+     placeholder. The big heading uses class "latin" for the
+     serif italic species name.
+     ============================================================ -->
+<article class="page">
+  <header class="head">
+    <div class="kicker">Family</div>
+    <h1 class="latin-name latin">Botanical name</h1>
+    <div class="common-name">Common name</div>
+  </header>
+  <div class="top">
+    <div class="photo"><img src="" alt=""><span class="ph">Photo — add an image to /photos and set the src</span></div>
+    <dl class="glance">
+      <div class="g-row"><dt>Light</dt><dd>&nbsp;</dd></div>
+      <div class="g-row"><dt>Water</dt><dd>&nbsp;</dd></div>
+      <div class="g-row"><dt>Humidity</dt><dd>&nbsp;</dd></div>
+      <div class="g-row"><dt>Temp</dt><dd>&nbsp;</dd></div>
+      <div class="g-row"><dt>Toxicity</dt><dd>&nbsp;</dd></div>
+      <div class="g-row"><dt>Difficulty</dt><dd>&nbsp;</dd></div>
+    </dl>
+  </div>
+  <div class="sections">
+    <section><h2>About</h2><p>&nbsp;</p></section>
+    <section><h2>Growing Cycle</h2><p>&nbsp;</p></section>
+    <section><h2>Watering</h2><p>&nbsp;</p></section>
+    <section><h2>Feeding</h2><p>&nbsp;</p></section>
+    <section><h2>Pests &amp; Stress Signals</h2><ul><li>&nbsp;</li><li>&nbsp;</li><li>&nbsp;</li></ul></section>
+    <section><h2>Origins &amp; Notes</h2><p>&nbsp;</p></section>
+  </div>
+  <dl class="log">
+    <div class="l-item"><dt>Acquired</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Source</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Location</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Last Repotted</dt><dd>&nbsp;</dd></div>
+    <div class="l-item l-wide"><dt>Pot / Soil</dt><dd>&nbsp;</dd></div>
+    <div class="l-item"><dt>Propagation</dt><dd>&nbsp;</dd></div>
+  </dl>
+  <div class="notes-block"><h2>Notes &amp; Care Log</h2><div class="notes-lines"></div></div>
+  <div class="foot"><span>Houseplant Catalogue</span><span>&nbsp;</span></div>
+</article>
+
+</body>
+</html>
