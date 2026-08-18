@@ -3,8 +3,17 @@
 // =============================================================
 // Precaches the app shell (HTML/CSS/JS/fonts/icons) so the app and
 // print view load instantly and work with no network at all.
-// Plant photos are cached the first time they're viewed, so browse
-// each plant once while online and it stays available offline.
+// Plant photos (the repo's own "photos/…" files) are cached the
+// first time they're viewed, so browse each plant once while online
+// and it stays available offline.
+//
+// WHAT THIS FILE DOES *NOT* CACHE
+// ---------------------------------
+// Your care-log text (js/store.js) and your device-local photos +
+// locally-added plants (js/db.js) are never touched by this file at
+// all — they live in localStorage and IndexedDB, which are
+// completely separate browser storage from the Cache API used here.
+// Nothing below can see, cache, or evict that data.
 //
 // BUMPING THE VERSION
 // --------------------
@@ -14,7 +23,7 @@
 // reload to pick it up.
 // =============================================================
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const SHELL_CACHE = "eb-shell-" + CACHE_VERSION;
 const PHOTO_CACHE = "eb-photos-" + CACHE_VERSION;
 
@@ -26,6 +35,10 @@ const APP_SHELL = [
   "./css/app.css",
   "./js/plants.js",
   "./js/store.js",
+  "./js/db.js",
+  "./js/photo-intake.js",
+  "./js/local-plants.js",
+  "./js/add-plant-dialog.js",
   "./js/app.js",
   "./js/print-render.js",
   "./fonts/inter-variable.woff2",

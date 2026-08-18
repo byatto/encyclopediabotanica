@@ -33,7 +33,11 @@
   ├── sw.js
   ├── js/
   │   ├── plants.js           ← your plant data (edit this)
-  │   ├── store.js
+  │   ├── store.js            ← care-log text (localStorage)
+  │   ├── db.js                ← photos + locally-added plants (IndexedDB)
+  │   ├── photo-intake.js       ← camera/gallery picker + resizing
+  │   ├── local-plants.js       ← "add plant" prompt, parsing, export
+  │   ├── add-plant-dialog.js   ← "+ Add plant" dialog (app only)
   │   ├── app.js
   │   └── print-render.js
   ├── css/
@@ -331,6 +335,22 @@
     padding-top: 6px;
   }
 
+  /* ── Local-plant marker ──
+     A plant added via the app's "+ Add plant" flow, on this device,
+     that hasn't been published into js/plants.js yet (see
+     js/print-render.js). Screen-only — hidden in the print rules
+     below, same as the helper bar. */
+  .local-marker {
+    margin-top: 5mm;
+    font-size: 8pt;
+    letter-spacing: 0.08em;
+    color: var(--green-soft);
+    border: 1px dashed var(--hair);
+    border-radius: 3px;
+    padding: 4px 8px;
+    display: inline-block;
+  }
+
   /* ============================================================
      HELPER BAR
      Screen-only. Hidden when printing.
@@ -390,8 +410,9 @@
       min-height: auto;
     }
 
-    /* Hide the helper bar and freeze button entirely when printing */
+    /* Hide the helper bar and any screen-only markers when printing */
     .helper { display: none; }
+    .local-marker { display: none; }
 
     @page { size: A4; margin: 0; }
   }
@@ -420,9 +441,11 @@
 
 
 <!-- plants.js must be loaded before the renderer script below.
-     It declares the global `plants` array. -->
+     It declares the global `plants` array. db.js gives the renderer
+     access to device-local photos and locally-added plants. -->
 <script src="js/plants.js"></script>
 <script src="js/store.js"></script>
+<script src="js/db.js"></script>
 <script src="js/print-render.js"></script>
 </body>
 </html>

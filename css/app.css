@@ -524,7 +524,171 @@ button {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ============================================================
+   v5 ADDITIONS — device-local photos + in-app "Add plant"
+   Reuses every token/pattern above (--paper/--hair/--green, .btn,
+   .notice, .text-link-btn, Inter, hairline borders, small uppercase
+   letterspaced labels) rather than introducing anything new.
+   ============================================================ */
+
+/* ── List toolbar: result count + "+ Add plant" ──────────── */
+.list-toolbar {
+  max-width: 640px;
+  margin: 12px auto 0;
+  padding: 0 16px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.list-toolbar .result-count { padding: 0; } /* toolbar supplies the padding now */
+.btn-add-plant {
+  padding: 7px 14px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ── "Local — not yet in plants.js" badge on a list card ──── */
+.badge-local {
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+
+/* ── Photo Set/Remove controls (sit below the photo box) ──── */
+.photo-controls {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+.photo-control-btn {
+  padding: 7px 12px;
+  font-size: 12.5px;
+}
+
+/* ── Local-plant marker + delete, in the detail view ──────── */
+.local-marker {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--faint);
+  letter-spacing: 0.02em;
+}
+.text-link-btn.danger-link { color: var(--danger); }
+.text-link-btn.danger-link:hover { color: var(--danger); opacity: 0.8; }
+
+/* ============================================================
+   ADD PLANT DIALOG
+   A native <dialog> — the browser supplies the modal behaviour
+   (focus trapping, Esc to close, the backdrop). Styled to look
+   like every other card/panel in this app, not a separate design.
+   ============================================================ */
+.add-plant-dialog {
+  width: min(92vw, 480px);
+  max-height: min(86vh, 720px);
+  margin: auto; /* centers a <dialog>, which the browser positions specially */
+  padding: 22px 20px 20px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  font-family: inherit;
+}
+.add-plant-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+.add-plant-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--soft);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.add-plant-close:hover { border-color: var(--green); color: var(--green); }
+
+.add-plant-step-heading { margin-bottom: 14px; padding-right: 30px; }
+.add-plant-step-count {
+  font-size: 7.5pt;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.add-plant-step-heading h3 { margin: 0; font-size: 17px; font-weight: 600; }
+
+.add-plant-hint { font-size: 13px; color: var(--soft); line-height: 1.55; margin: 0 0 14px; }
+
+.add-plant-name-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  outline: none;
+}
+.add-plant-name-input:focus { border-color: var(--green); }
+
+.add-plant-inline-error { color: var(--danger); font-size: 12.5px; margin: 8px 0 0; }
+
+.add-plant-prompt-box,
+.add-plant-paste-box {
+  width: 100%;
+  height: 160px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  resize: vertical;
+  outline: none;
+}
+.add-plant-prompt-box:focus,
+.add-plant-paste-box:focus { border-color: var(--green); }
+
+.add-plant-copy-row { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
+.add-plant-copy-status { font-size: 12px; color: var(--green); }
+
+.add-plant-errors { margin-top: 12px; }
+.add-plant-errors strong { display: block; margin-bottom: 6px; font-size: 12.5px; }
+.add-plant-errors ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.6; }
+
+.add-plant-photo-preview {
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--hair-soft);
+  border: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.add-plant-photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.add-plant-photo-empty { font-size: 12.5px; color: var(--faint); text-align: center; padding: 12px; }
+.add-plant-photo-controls { display: flex; gap: 8px; margin-bottom: 4px; }
+
+.add-plant-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 /* ── Wider screens (tablets) ─────────────────────────────── */
 @media (min-width: 560px) {
   .plant-list { grid-template-columns: 1fr 1fr; display: grid; }
+  .list-toolbar { max-width: 100%; }
 }

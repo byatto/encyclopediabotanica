@@ -1,9 +1,18 @@
 // =============================================================
-// print-render.js — renders js/plants.js into A4 pages for print.html
+// print-render.js — renders plants into A4 pages for print.html
 // =============================================================
-// Reads the `plants` array (declared globally by js/plants.js) and
+// Reads the `plants` array (declared globally by js/plants.js),
+// plus — since v5 — any plants added on this device via the app's
+// "+ Add plant" flow (stored in IndexedDB, see js/db.js), and
 // builds one page <article> per record using createElement +
 // textContent so that no plant text is ever interpreted as HTML.
+//
+// This file is now ASYNC (buildPage and render both use `await`),
+// because checking IndexedDB for an on-device photo is asynchronous.
+// Previously the whole page rendered synchronously the instant
+// plants.js loaded; now it renders once IndexedDB has answered,
+// which in practice is still near-instant, but isn't guaranteed to
+// be finished on the very first frame the way it used to be.
 // =============================================================
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -63,10 +72,28 @@ function showLoadError(reason) {
 // ── Page builder ─────────────────────────────────────────────
 
 /**
+ * Work out what photo (if any) to show for a plant: an on-device
+ * photo (IndexedDB) takes precedence over the `photo` path from the
+ * record, which takes precedence over showing nothing (placeholder).
+ * Returns a src string, or null for "no photo, show the placeholder".
+ */
+async function resolvePhotoSrc(plant) {
+  if (window.PlantDB) {
+    try {
+      const blob = await window.PlantDB.getPhoto(plant.id);
+      if (blob) return URL.createObjectURL(blob);
+    } catch (err) {
+      // IndexedDB unavailable or errored — fall through to the repo photo.
+    }
+  }
+  return plant.photo || null;
+}
+
+/**
  * Build and return one <article class="page"> DOM node
  * for the given plant record object.
  */
-function buildPage(plant) {
+async function buildPage(plant) {
   const article = el("article");
   article.className = "page";
   if (plant.id) article.id = "plant-" + plant.id;
@@ -104,9 +131,10 @@ function buildPage(plant) {
       )
     );
   }
-  if (plant.photo) {
+  const photoSrc = await resolvePhotoSrc(plant);
+  if (photoSrc) {
     const img = document.createElement("img");
-    img.src = plant.photo;
+    img.src = photoSrc;
     img.alt = plant.common + " (" + plant.latin + ")";
     img.addEventListener("error", showPhotoPlaceholder); // missing/broken file → quiet placeholder, not a broken-image icon
     photoBox.appendChild(img);
@@ -208,6 +236,14 @@ function buildPage(plant) {
 
   article.appendChild(notes);
 
+  // ─ Local-plant marker ───────────────────────────────────────
+  // Screen-only (see .local-marker's @media print rule in
+  // print.html) — a plant added via the app's "+ Add plant" flow
+  // that hasn't been published into js/plants.js yet.
+  if (plant.isLocal) {
+    article.appendChild(el("div", "Local — not yet in plants.js", "local-marker"));
+  }
+
   // ─ Footer ─────────────────────────────────────────────────
   const foot = el("div", null, "foot");
   foot.appendChild(el("span", "Houseplant Catalogue"));
@@ -219,7 +255,28 @@ function buildPage(plant) {
 
 // ── Main render ──────────────────────────────────────────────
 
-(function render() {
+/**
+ * Locally-added plants (from the app's "+ Add plant" flow) that
+ * aren't already in js/plants.js — same de-duplication rule as
+ * js/app.js: if an id exists in the repo file, that record wins and
+ * the local copy is skipped here (never deleted, just not shown).
+ */
+async function getLocalOnlyPlants(repoPlants) {
+  if (!window.PlantDB) return [];
+  let localRecords = [];
+  try {
+    localRecords = await window.PlantDB.getAllLocalPlants();
+  } catch (err) {
+    console.warn("Could not load locally-added plants for printing:", err);
+    return [];
+  }
+  const repoIds = new Set(repoPlants.map(p => p.id));
+  return localRecords
+    .filter(p => !repoIds.has(p.id))
+    .map(p => Object.assign({}, p, { isLocal: true }));
+}
+
+(async function render() {
   // Guard: plants.js must have loaded and declared window.plants
   if (typeof plants === "undefined" || !Array.isArray(plants)) {
     showLoadError(
@@ -229,13 +286,21 @@ function buildPage(plant) {
     return;
   }
 
-  if (plants.length === 0) {
-    showLoadError("js/plants.js loaded but the plants array is empty.");
+  const localOnly = await getLocalOnlyPlants(plants);
+  const allPlants = plants.concat(localOnly);
+
+  if (allPlants.length === 0) {
+    showLoadError("js/plants.js loaded but the plants array is empty, and no plants have been added on this device.");
     return;
   }
 
+  // Built concurrently (each just waits on an IndexedDB photo
+  // lookup), but Promise.all keeps them in the same order as
+  // allPlants — repo plants first, in file order, then local ones.
+  const pages = await Promise.all(allPlants.map(buildPage));
+
   const catalogue = document.getElementById("catalogue");
-  plants.forEach(plant => catalogue.appendChild(buildPage(plant)));
+  pages.forEach(page => catalogue.appendChild(page));
 })();
 
 
@@ -244,9 +309,18 @@ function buildPage(plant) {
    Clicking "Save frozen copy" clones the rendered DOM, strips
    all <script> tags and the helper bar, then downloads the
    result as a static HTML file.
+
+   Device-local photos are shown live via `blob:` URLs, which only
+   work inside this browser tab/session — they'd be dead links in a
+   downloaded file. So before composing the frozen copy, this reads
+   each local photo out of IndexedDB again and inlines it as a
+   `data:` URL instead, which is just the image's bytes written out
+   as text — it keeps working in the file forever, no matter where
+   it's opened. Repo photos (plain "photos/…" paths) are left as-is,
+   same as before v5.
    ============================================================ */
 
-document.getElementById("btn-freeze").addEventListener("click", function () {
+document.getElementById("btn-freeze").addEventListener("click", async function () {
   // Clone the whole document so we can mutate without affecting the live page
   const clone = document.documentElement.cloneNode(true);
 
@@ -255,6 +329,23 @@ document.getElementById("btn-freeze").addEventListener("click", function () {
 
   // Remove the helper bar (it has class "helper")
   clone.querySelectorAll(".helper").forEach(h => h.remove());
+
+  // Inline device-local photos as data URLs (see comment above).
+  if (window.PlantDB) {
+    const pages = clone.querySelectorAll('article.page[id^="plant-"]');
+    for (const page of pages) {
+      const plantId = page.id.replace(/^plant-/, "");
+      let blob;
+      try {
+        blob = await window.PlantDB.getPhoto(plantId);
+      } catch (err) {
+        blob = null;
+      }
+      if (!blob) continue;
+      const img = page.querySelector(".photo img");
+      if (img) img.src = await window.PlantDB.blobToDataURL(blob);
+    }
+  }
 
   // Compose the file — doctype + cleaned HTML
   const html = "<!DOCTYPE html>\n" + clone.outerHTML;

@@ -1,10 +1,31 @@
 // =============================================================
 // app.js — mobile app logic for index.html
 // =============================================================
-// Renders js/plants.js as a searchable list + detail view, with
-// an editable care log saved via js/store.js (PlantStore). Routing
-// is hash-based (#/, #/plant/<id>, #/about) so back/forward and
-// deep links work without a server, entirely offline.
+// Renders plants as a searchable list + detail view, with an
+// editable care log saved via js/store.js (PlantStore). Routing is
+// hash-based (#/, #/plant/<id>, #/about) so back/forward and deep
+// links work without a server, entirely offline.
+//
+// WHERE PLANTS COME FROM (added in v5)
+// -------------------------------------
+// There are now two sources of plant records, merged together:
+//
+//   - REPO_PLANTS: the `plants` array from js/plants.js — the
+//     shared file the owner edits and commits.
+//   - locally-added plants: records saved on this device only, via
+//     the in-app "Add plant" flow (see js/local-plants.js and
+//     js/add-plant-dialog.js), stored in IndexedDB (see js/db.js).
+//
+// `PLANTS` (below) is the combined, de-duplicated list actually
+// shown by the app. If a locally-added plant's id also exists in
+// js/plants.js (e.g. because you committed an export that included
+// it), the repo version wins and the local copy is simply ignored —
+// never deleted automatically. See rebuildPlantsList().
+//
+// Loading local plants from IndexedDB is asynchronous, so the very
+// first render uses repo plants only (instant, no waiting), and
+// then re-renders a moment later once local plants are known — see
+// "Initial render" at the bottom of this file.
 // =============================================================
 
 (function () {
@@ -20,6 +41,7 @@
   const plantListEl  = document.getElementById("plant-list");
   const emptyState   = document.getElementById("empty-state");
   const emptyQuery   = emptyState.querySelector("span");
+  const btnAddPlant  = document.getElementById("btn-add-plant");
 
   const detailContent = document.getElementById("detail-content");
   const btnBack        = document.getElementById("btn-back");
@@ -32,7 +54,12 @@
   // plain global identifier though, since these are both classic
   // (non-module) scripts sharing one global scope, so reference it
   // directly rather than via `window.plants`.
-  const PLANTS = typeof plants !== "undefined" ? plants : [];
+  const REPO_PLANTS = typeof plants !== "undefined" ? plants : [];
+
+  // The combined, de-duplicated list the app actually renders from.
+  // Starts as just the repo plants; rebuildPlantsList() below layers
+  // locally-added ones on top once IndexedDB has answered.
+  let PLANTS = REPO_PLANTS;
 
   let toastTimer = null;
   let searchQuery = "";
@@ -58,6 +85,9 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1800);
   }
+  // Exposed so js/add-plant-dialog.js can reuse the same toast
+  // instead of building its own — one visual style, one place it's defined.
+  window.showAppToast = showToast;
 
   function debounce(fn, wait) {
     let t;
@@ -72,45 +102,98 @@
     '<path d="M50 15C66 15 80 30 80 52C80 74 66 90 48 90C34 90 22 78 22 60C22 40 34 22 50 15Z" fill="currentColor" opacity="0.35"/>' +
     "</svg>";
 
+  // ── Photo object URLs ────────────────────────────────────────
+  // A local (on-device) photo is stored as a Blob in IndexedDB, and
+  // shown via `URL.createObjectURL(blob)` — a temporary browser URL
+  // that points at the blob's bytes in memory. Those need to be
+  // explicitly released (`revokeObjectURL`) once we're done with
+  // them, or the browser holds onto that memory pointlessly. Both
+  // render functions below clear and rebuild their container from
+  // scratch each time, so the simplest safe rule is: revoke
+  // everything we handed out last time, right before building fresh
+  // thumbnails/photos this time.
+  let activeObjectUrls = [];
+  function trackObjectUrl(url) { activeObjectUrls.push(url); }
+  function revokeTrackedObjectUrls() {
+    activeObjectUrls.forEach(url => URL.revokeObjectURL(url));
+    activeObjectUrls = [];
+  }
+
+  /**
+   * Build a photo box for a plant. Shows, in order of preference:
+   * a photo saved on this device → the `photo` path from the plant
+   * record → a quiet placeholder. The on-device lookup is async
+   * (IndexedDB), so the repo photo (or placeholder) appears first
+   * and is swapped out the moment the local one is ready — the list
+   * never waits on IndexedDB before showing something.
+   */
   function thumbEl(plant, sizeClass) {
     const wrap = el("div", null, "thumb", sizeClass || "");
-    if (plant.photo) {
-      const img = document.createElement("img");
-      img.src = plant.photo;
-      img.alt = "";
-      img.loading = "lazy";
-      const placeholder = el("div", null, "thumb-placeholder");
-      placeholder.innerHTML = LEAF_PLACEHOLDER_SVG;
+
+    const placeholder = el("div", null, "thumb-placeholder");
+    placeholder.innerHTML = LEAF_PLACEHOLDER_SVG;
+
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.hidden = true;
+    // Covers both a missing repo photo file (404) and, in principle,
+    // a corrupted local blob — either way, fall back to the placeholder.
+    img.addEventListener("error", () => {
+      img.hidden = true;
+      placeholder.hidden = false;
+    });
+
+    function showImage(src) {
+      img.src = src;
+      img.hidden = false;
       placeholder.hidden = true;
-      img.addEventListener("error", () => {
-        img.remove();
-        placeholder.hidden = false;
-      });
-      append(wrap, img, placeholder);
-    } else {
-      const placeholder = el("div", null, "thumb-placeholder");
-      placeholder.innerHTML = LEAF_PLACEHOLDER_SVG;
-      wrap.appendChild(placeholder);
     }
+
+    if (plant.photo) showImage(plant.photo);
+
+    append(wrap, img, placeholder);
+
+    if (global_PlantDB()) {
+      global_PlantDB().getPhoto(plant.id).then(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        trackObjectUrl(url);
+        showImage(url);
+      }).catch(() => { /* IndexedDB unavailable — repo photo/placeholder stands */ });
+    }
+
     return wrap;
   }
 
-  // ── Search index ────────────────────────────────────────────
-  // One lower-cased haystack per plant, built once, covering every
-  // field worth finding by ("toxic", "easy", "spider mites", ...).
+  // Small guard so this file doesn't hard-crash if js/db.js failed
+  // to load for some reason — the app degrades to repo-photos-only.
+  function global_PlantDB() {
+    return window.PlantDB || null;
+  }
 
-  const searchIndex = new Map();
-  PLANTS.forEach(p => {
-    const haystack = [
-      p.family, p.latin, p.common, p.qualifier,
-      p.glance && p.glance.light, p.glance && p.glance.water,
-      p.glance && p.glance.humidity, p.glance && p.glance.toxicity,
-      p.glance && p.glance.difficulty,
-      p.about, p.cycle, p.watering, p.feeding, p.origins,
-      Array.isArray(p.pests) ? p.pests.join(" ") : ""
-    ].filter(Boolean).join(" ").toLowerCase();
-    searchIndex.set(p.id, haystack);
-  });
+  // ── Search index ────────────────────────────────────────────
+  // One lower-cased haystack per plant, covering every field worth
+  // finding by ("toxic", "easy", "spider mites", ...). Rebuilt
+  // whenever the plant list changes (repo load, or a local plant is
+  // added/deleted).
+
+  let searchIndex = new Map();
+  function rebuildSearchIndex() {
+    searchIndex = new Map();
+    PLANTS.forEach(p => {
+      const haystack = [
+        p.family, p.latin, p.common, p.qualifier,
+        p.glance && p.glance.light, p.glance && p.glance.water,
+        p.glance && p.glance.humidity, p.glance && p.glance.toxicity,
+        p.glance && p.glance.difficulty,
+        p.about, p.cycle, p.watering, p.feeding, p.origins,
+        Array.isArray(p.pests) ? p.pests.join(" ") : ""
+      ].filter(Boolean).join(" ").toLowerCase();
+      searchIndex.set(p.id, haystack);
+    });
+  }
+  rebuildSearchIndex(); // seed with repo plants immediately
 
   function matches(plant, query) {
     if (!query) return true;
@@ -119,9 +202,34 @@
     return (searchIndex.get(plant.id) || "").includes(q);
   }
 
+  /**
+   * Re-reads locally-added plants from IndexedDB and rebuilds PLANTS
+   * as REPO_PLANTS + (local plants whose id isn't already a repo
+   * id). Call this after adding or deleting a local plant, and once
+   * at startup. See js/db.js for where local plants are stored.
+   */
+  async function rebuildPlantsList() {
+    let localRecords = [];
+    const db = global_PlantDB();
+    if (db) {
+      try {
+        localRecords = await db.getAllLocalPlants();
+      } catch (err) {
+        console.warn("Could not load locally-added plants:", err);
+      }
+    }
+    const repoIds = new Set(REPO_PLANTS.map(p => p.id));
+    const overlay = localRecords
+      .filter(p => !repoIds.has(p.id)) // repo record wins on an id clash
+      .map(p => Object.assign({}, p, { isLocal: true }));
+    PLANTS = REPO_PLANTS.concat(overlay);
+    rebuildSearchIndex();
+  }
+
   // ── List view ────────────────────────────────────────────────
 
   function renderList() {
+    revokeTrackedObjectUrls();
     const filtered = PLANTS.filter(p => matches(p, searchQuery));
 
     plantListEl.innerHTML = "";
@@ -150,6 +258,7 @@
       body.appendChild(commonLine);
 
       const badges = el("div", null, "plant-card-badges");
+      if (plant.isLocal) badges.appendChild(el("span", "Local", "badge", "badge-local"));
       if (plant.glance.difficulty) badges.appendChild(el("span", plant.glance.difficulty, "badge"));
       if (plant.glance.light) badges.appendChild(el("span", plant.glance.light, "badge"));
       body.appendChild(badges);
@@ -210,7 +319,60 @@
     return wrap;
   }
 
+  /**
+   * Builds the "Set photo" / "Remove photo" controls for a plant.
+   * Works for every plant, repo or local — device-local photos are
+   * a per-plant override regardless of where the record itself came
+   * from. Returns the controls element to append as a SIBLING after
+   * the photo box, not a child of it — the photo box clips its
+   * contents to a fixed aspect ratio (see .d-photo in app.css),
+   * which would cut these buttons off if nested inside it.
+   */
+  function buildPhotoControls(plant) {
+    const controls = el("div", null, "photo-controls");
+    const db = global_PlantDB();
+    if (!db || !window.PhotoIntake) return controls; // storage or picker unavailable — quietly skip
+
+    const setBtn = el("button", "Set photo", "btn", "photo-control-btn");
+    setBtn.type = "button";
+    setBtn.addEventListener("click", async () => {
+      let blob;
+      try {
+        blob = await window.PhotoIntake.pickAndResizePhoto();
+      } catch (err) {
+        alert("Couldn't read that photo: " + err.message);
+        return;
+      }
+      if (!blob) return; // picker was cancelled
+      try {
+        await db.savePhoto(plant.id, blob);
+        const persisted = await db.requestPersistenceOnce();
+        showToast(persisted === true ? "Photo saved — protected from automatic cleanup" : "Photo saved");
+        renderDetail(plant.id); // rebuild so the new photo shows and "Remove" appears
+      } catch (err) {
+        alert("Couldn't save that photo: " + err.message);
+      }
+    });
+    controls.appendChild(setBtn);
+
+    db.getPhoto(plant.id).then(existingBlob => {
+      if (!existingBlob) return;
+      const removeBtn = el("button", "Remove photo", "btn", "btn-danger", "photo-control-btn");
+      removeBtn.type = "button";
+      removeBtn.addEventListener("click", async () => {
+        if (!confirm("Remove your photo for " + plant.common + "? This reverts to the repo photo or placeholder on this device.")) return;
+        await db.deletePhoto(plant.id);
+        showToast("Photo removed");
+        renderDetail(plant.id);
+      });
+      controls.appendChild(removeBtn);
+    }).catch(() => {});
+
+    return controls;
+  }
+
   function renderDetail(id) {
+    revokeTrackedObjectUrls();
     const plant = PLANTS.find(p => p.id === id);
     detailContent.innerHTML = "";
 
@@ -231,9 +393,11 @@
     if (plant.qualifier) commonLine.appendChild(el("span", plant.qualifier, "qualifier"));
     detailContent.appendChild(commonLine);
 
-    // Photo
+    // Photo, plus Set/Remove controls (device-local, see buildPhotoControls)
+    // underneath it — appended as siblings, not nested, see that function's comment.
     const photoWrap = thumbEl(plant, "d-photo");
     detailContent.appendChild(photoWrap);
+    detailContent.appendChild(buildPhotoControls(plant));
 
     // Quick glance
     const glance = document.createElement("div");
@@ -297,6 +461,26 @@
 
     detailContent.appendChild(logSection);
 
+    // Local-plant marker + delete (only for plants added via "Add
+    // plant" on this device that aren't in js/plants.js yet)
+    if (plant.isLocal) {
+      const localNote = el("p", "Local — not yet in plants.js", "local-marker");
+      detailContent.appendChild(localNote);
+
+      const deleteBtn = el("button", "Delete this local plant", "text-link-btn", "danger-link");
+      deleteBtn.addEventListener("click", async () => {
+        if (!confirm("Delete your local record for " + plant.common + " (and its photo, if any)? This can't be undone — but since it was never added to plants.js, nothing in the shared file is affected.")) return;
+        const db = global_PlantDB();
+        if (db) {
+          await db.deleteLocalPlant(plant.id);
+          await db.deletePhoto(plant.id);
+        }
+        showToast("Local plant deleted");
+        await window.AppRefresh.refresh("#/");
+      });
+      detailContent.appendChild(deleteBtn);
+    }
+
     // Footer links
     const footer = el("div", null, "d-footer-links");
     const printLink = el("a", "Print / export PDF ↗");
@@ -347,6 +531,21 @@
 
   window.addEventListener("hashchange", route);
 
+  // Shared refresh hook: called after IndexedDB data changes outside
+  // of a normal page render (adding a plant, deleting a local plant,
+  // restoring a backup) so the app's in-memory PLANTS/search index
+  // catch up, then navigates or re-renders as requested.
+  window.AppRefresh = {
+    refresh: async function (targetHash) {
+      await rebuildPlantsList();
+      if (targetHash && location.hash !== targetHash) {
+        location.hash = targetHash; // triggers route() via hashchange
+      } else {
+        route();
+      }
+    }
+  };
+
   // ── Search input ─────────────────────────────────────────────
 
   searchInput.addEventListener("input", () => {
@@ -354,12 +553,17 @@
     if (parseHash().view === "list") renderList();
   });
 
+  // ── Add plant ────────────────────────────────────────────────
+
+  if (btnAddPlant) {
+    btnAddPlant.addEventListener("click", () => {
+      if (window.AddPlantDialog) window.AddPlantDialog.open();
+    });
+  }
+
   // ── Back button ──────────────────────────────────────────────
 
   btnBack.addEventListener("click", () => {
-    if (history.length > 1 && document.referrer === "") {
-      // no-op; hash navigation below handles the common case
-    }
     location.hash = "#/";
   });
 
@@ -368,10 +572,30 @@
   });
 
   // ── Export / import / clear (About view) ────────────────────
+  // Backups now cover three things: care-log text (PlantStore /
+  // localStorage), and locally-added plants + their photos
+  // (PlantDB / IndexedDB). The download is one JSON file either way
+  // — see js/db.js for why photos become base64 text inside it.
 
-  document.getElementById("btn-export").addEventListener("click", () => {
-    const json = PlantStore.exportJSON();
+  document.getElementById("btn-export").addEventListener("click", async () => {
     const today = new Date().toISOString().slice(0, 10);
+    let backup;
+    try {
+      const logsExport = JSON.parse(PlantStore.exportJSON()); // { version: 1, logs: {...} }
+      const db = global_PlantDB();
+      const dbExport = db ? await db.exportAll() : { localPlants: [], photos: [] };
+      backup = {
+        version: 2,
+        logs: logsExport.logs || {},
+        localPlants: dbExport.localPlants,
+        photos: dbExport.photos
+      };
+    } catch (err) {
+      alert("Couldn't prepare a backup: " + err.message);
+      return;
+    }
+
+    const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -388,11 +612,30 @@
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
-        PlantStore.importJSON(reader.result, { merge: true });
-        showToast("Data imported");
-        if (parseHash().view === "plant") route();
+        const raw = reader.result;
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch (err) { parsed = null; }
+
+        // v2 backups carry a localPlants and/or photos array; a plain
+        // v1 (or unrecognised) file is handed to PlantStore as-is,
+        // which does its own validation and reports its own errors.
+        const looksLikeV2 = parsed && (Array.isArray(parsed.localPlants) || Array.isArray(parsed.photos));
+
+        if (looksLikeV2) {
+          if (parsed.logs && typeof parsed.logs === "object") {
+            PlantStore.importJSON(JSON.stringify({ version: 1, logs: parsed.logs }), { merge: true });
+          }
+          const db = global_PlantDB();
+          if (db) await db.importAll({ localPlants: parsed.localPlants, photos: parsed.photos });
+          await window.AppRefresh.refresh();
+          showToast("Backup restored (logs, local plants & photos)");
+        } else {
+          PlantStore.importJSON(raw, { merge: true });
+          showToast("Backup restored (care-log data)");
+          if (parseHash().view === "plant") route();
+        }
       } catch (err) {
         alert("Import failed: " + err.message);
       }
@@ -408,6 +651,46 @@
       if (parseHash().view === "plant") route();
     }
   });
+
+  // ── Export plants.js (folds locally-added plants into the file
+  //    the owner commits — see js/local-plants.js for the assembly
+  //    logic) ─────────────────────────────────────────────────
+
+  const btnExportPlants = document.getElementById("btn-export-plants");
+  if (btnExportPlants) {
+    btnExportPlants.addEventListener("click", async () => {
+      const db = global_PlantDB();
+      if (!db || !window.LocalPlants) {
+        alert("Export isn't available in this browser.");
+        return;
+      }
+      try {
+        const localRecords = await db.getAllLocalPlants();
+        const localOnly = localRecords.filter(p => !REPO_PLANTS.some(rp => rp.id === p.id));
+        if (localOnly.length === 0) {
+          alert('No locally-added plants to export yet — use "Add plant" first.');
+          return;
+        }
+        const response = await fetch("js/plants.js");
+        if (!response.ok) throw new Error("Could not load js/plants.js (HTTP " + response.status + ").");
+        const originalText = await response.text();
+        const merged = window.LocalPlants.mergePlantsJsSource(originalText, localOnly);
+
+        const blob = new Blob([merged], { type: "text/javascript" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "plants.js";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast("plants.js downloaded — replace js/plants.js in the repo with it");
+      } catch (err) {
+        alert("Couldn't export plants.js: " + err.message);
+      }
+    });
+  }
 
   // ── Install prompt (Android/Chrome "Add to Home screen") ────
 
@@ -471,5 +754,8 @@
   }
 
   // ── Initial render ──────────────────────────────────────────
+  // Render immediately with repo plants only (instant, no waiting on
+  // IndexedDB), then layer in locally-added plants a moment later.
   route();
+  rebuildPlantsList().then(route);
 })();
