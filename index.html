@@ -20,6 +20,14 @@
   on-device (see js/store.js). Plant reference data lives in
   js/plants.js, shared with print.html (the A4/PDF export view).
 
+  Two more things live only on this device, in IndexedDB rather
+  than js/store.js's localStorage (see js/db.js for why): photos
+  you set on a plant (js/photo-intake.js), and any plants you add
+  in-app via the "+ Add plant" flow (js/local-plants.js +
+  js/add-plant-dialog.js) before you've published them into
+  js/plants.js. Nothing here ever leaves the device — see the
+  privacy note in js/db.js.
+
   See README.md for the full file layout and how to install this
   as an app on Android (Chrome → menu → "Install app" / "Add to
   Home screen").
@@ -59,9 +67,12 @@
      LIST VIEW
      ============================================================ -->
 <main id="view-list" class="view">
-  <div id="result-count" class="result-count" aria-live="polite"></div>
+  <div class="list-toolbar">
+    <div id="result-count" class="result-count" aria-live="polite"></div>
+    <button id="btn-add-plant" class="btn btn-add-plant">+ Add plant</button>
+  </div>
   <ul id="plant-list" class="plant-list"></ul>
-  <p id="empty-state" class="empty-state" hidden>No plants match "<span></span>". Try a different search, or add one via <code>new-plant-prompt.md</code>.</p>
+  <p id="empty-state" class="empty-state" hidden>No plants match "<span></span>". Try a different search, or tap <strong>+ Add plant</strong> above.</p>
 </main>
 
 <!-- ============================================================
@@ -104,9 +115,9 @@
       <div id="storage-notice" class="notice warn" hidden>
         This browser isn't persisting saved data (private/incognito mode, or storage is disabled) — anything you log will be lost when you close the app.
       </div>
-      <p>Care-log entries and notes live in this browser's local storage, on this device only. Export a backup occasionally, especially before reinstalling or switching phones.</p>
+      <p>Care-log notes, photos you set on a plant, and any plants you've added with <strong>+ Add plant</strong> all live only on this device — nothing is ever uploaded anywhere. When you first add a photo, the app also asks the browser to protect this data from automatic cleanup (no prompt to you either way — some browsers grant it silently). Export a backup occasionally, especially before reinstalling or switching phones — photos make the backup file a few MB, which is expected.</p>
       <div class="about-actions">
-        <button id="btn-export" class="btn btn-block">Export data (.json backup)</button>
+        <button id="btn-export" class="btn btn-block">Export data (logs, local plants & photos)</button>
         <label class="btn btn-block" for="import-file" style="cursor:pointer;">Import data (merge from backup)</label>
         <input id="import-file" type="file" accept="application/json,.json" class="visually-hidden">
         <button id="btn-clear" class="btn btn-danger btn-block">Clear all saved data</button>
@@ -115,21 +126,38 @@
 
     <div class="about-section">
       <h2>Print / PDF</h2>
-      <p>Need paper copies or a PDF of the full catalogue? Use the print view — same data, A4 layout.</p>
+      <p>Need paper copies or a PDF of the full catalogue? Use the print view — same data, A4 layout, including your on-device photos and locally-added plants.</p>
       <a href="print.html" class="btn btn-block" style="text-decoration:none;display:flex;">Open print view</a>
     </div>
 
     <div class="about-section">
       <h2>Adding a plant</h2>
-      <p>Copy <code>new-plant-prompt.md</code> into any AI assistant, paste the generated record into <code>js/plants.js</code>, then reload. Full instructions are in that file and in <code>README.md</code>.</p>
+      <p>Tap <strong>+ Add plant</strong> on the list screen. It walks you through an optional photo, naming the plant, copying a ready-made prompt to paste into any AI assistant, and pasting its reply back in — the app checks the reply over and adds it straight to your catalogue on this device.</p>
+      <p>A plant added this way is marked <strong>Local</strong> until you publish it: use <strong>Export plants.js</strong> below to download a copy of <code>js/plants.js</code> with your local plants folded in, ready to commit to the repo. Once committed, the app quietly stops using its local copy in favour of the real one — nothing is deleted, so it's always safe to try.</p>
+      <button id="btn-export-plants" class="btn btn-block">Export plants.js</button>
     </div>
   </div>
 </main>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+<!-- ============================================================
+     ADD PLANT DIALOG
+     A native <dialog> element — the browser handles the modal
+     behaviour (focus trapping, Esc to close, a backdrop) for free.
+     Its step-by-step content is built by js/add-plant-dialog.js.
+     ============================================================ -->
+<dialog id="add-plant-dialog" class="add-plant-dialog">
+  <button id="add-plant-close" class="add-plant-close" aria-label="Close">×</button>
+  <div id="add-plant-step"></div>
+</dialog>
+
 <script src="js/plants.js"></script>
 <script src="js/store.js"></script>
+<script src="js/db.js"></script>
+<script src="js/photo-intake.js"></script>
+<script src="js/local-plants.js"></script>
+<script src="js/add-plant-dialog.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
