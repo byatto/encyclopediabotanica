@@ -208,13 +208,19 @@ followed by \`];\`.
   // HONEST LIMITS of this approach: JSON is stricter than a JS
   // object literal. It requires double-quoted keys and double-quoted
   // strings, and doesn't allow trailing commas or single quotes. The
-  // steps below fix up the two differences the AI is actually likely
-  // to produce (unquoted keys, a trailing comma) because the prompt
-  // asks for exactly that shape. If the AI's reply uses single quotes
-  // for strings, or anything more exotic, parsing will fail — you'll
-  // get a plain-language error rather than a wrong or silently
-  // mangled record, which is the trade-off this app deliberately
-  // makes: never guess, never run untrusted text as code.
+  // steps below fix up the differences the AI is actually likely to
+  // produce, because the prompt asks for exactly this shape:
+  // unquoted keys, a trailing comma, and a stray sentence added
+  // before/after the record despite being told not to (very common
+  // — see extractFirstJsonObject below). If the AI's reply uses
+  // single quotes for strings, or "smart"/curly quotes (" " ' ' —
+  // some phone keyboards and note apps substitute these
+  // automatically) instead of straight ones, parsing will still
+  // fail — you'll get a plain-language error rather than a wrong or
+  // silently mangled record, which is the trade-off this app
+  // deliberately makes: never guess, never run untrusted text as
+  // code. Re-copying the reply from the AI directly (rather than
+  // via a notes app) usually avoids the smart-quotes case.
 
   function stripCodeFences(text) {
     let t = text.trim();
@@ -250,6 +256,48 @@ followed by \`];\`.
   }
 
   /**
+   * Finds the first { … } block in some text and returns just that
+   * slice, ignoring anything before or after it. AI assistants very
+   * commonly add a sentence around the record even when told not to
+   * ("Here's the record:" / "Let me know if you'd like changes!") —
+   * this means that no longer breaks parsing.
+   *
+   * Scans character by character, counting { and } but ignoring any
+   * that appear inside a quoted string (so a stray brace inside a
+   * plant description, however unlikely, can't miscount). Returns
+   * null if no complete, balanced { … } block is found — the caller
+   * then falls back to trying to parse the text as-is.
+   */
+  function extractFirstJsonObject(text) {
+    const start = text.indexOf("{");
+    if (start === -1) return null;
+
+    let depth = 0;
+    let inString = false;
+    let stringChar = "";
+    let escaped = false;
+
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === stringChar) inString = false;
+        continue;
+      }
+
+      if (ch === '"' || ch === "'") { inString = true; stringChar = ch; continue; }
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) return text.slice(start, i + 1);
+      }
+    }
+    return null; // never closed — leave the text alone, JSON.parse will report why
+  }
+
+  /**
    * Parse a pasted AI reply into a plant record object.
    * Returns { ok: true, record } or { ok: false, error } — "error"
    * is a short, plain-language string, never a raw stack trace.
@@ -260,6 +308,10 @@ followed by \`];\`.
     }
 
     let text = stripCodeFences(pastedText);
+
+    const extracted = extractFirstJsonObject(text);
+    if (extracted) text = extracted; // drop any commentary the AI added around the record
+
     text = stripTrailingComma(text);
     text = removeInteriorTrailingCommas(text);
     text = quoteBareKeys(text);
@@ -270,7 +322,7 @@ followed by \`];\`.
     } catch (err) {
       return {
         ok: false,
-        error: "Couldn't read that as a plant record. Make sure you pasted the AI's entire reply, unedited, with nothing added before or after it."
+        error: "Couldn't read that as a plant record. If your AI's reply used regular \" quotes, try pasting it again fresh from the AI (not via a notes app) — some keyboards/apps swap straight quotes for curly “smart” ones, which this can't read."
       };
     }
 
