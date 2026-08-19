@@ -40,8 +40,8 @@
   const resultCount  = document.getElementById("result-count");
   const plantListEl  = document.getElementById("plant-list");
   const emptyState   = document.getElementById("empty-state");
-  const emptyQuery   = emptyState.querySelector("span");
   const btnAddPlant  = document.getElementById("btn-add-plant");
+  const locationFilterEl = document.getElementById("location-filter");
 
   const detailContent = document.getElementById("detail-content");
   const btnBack        = document.getElementById("btn-back");
@@ -63,6 +63,14 @@
 
   let toastTimer = null;
   let searchQuery = "";
+
+  // "Room" filter — which plant.log.location (see js/store.js) the
+  // list is currently narrowed to, or null for "every room". Not the
+  // location text itself, since two plants' locations might differ
+  // only in capitalisation/spacing ("Kitchen " vs "kitchen") and
+  // should still count as the same room — see getLocationFacets().
+  let activeLocation = null; // { key: "<lowercase, trimmed location>", label: "<as typed>" } | null
+  const UNSET_LOCATION_KEY = "__unset__"; // groups every plant with no location set
 
   // ── Small DOM helpers (textContent only — never innerHTML for
   //    plant data, matching the print renderer's approach) ──────
@@ -226,19 +234,134 @@
     rebuildSearchIndex();
   }
 
+  // ── Room ("Location") filter ────────────────────────────────
+  // Reads plant.log.location fresh from PlantStore every time (not
+  // cached), so it always reflects whatever you last typed into a
+  // plant's Care Log — no separate "rebuild" step needed elsewhere.
+
+  function resolvedLocation(plant) {
+    return (PlantStore.getLog(plant.id, plant.log).location || "").trim();
+  }
+
+  /**
+   * Groups every plant's current location into a list of
+   * { label, count }, one per distinct room — case/spacing-insensitive,
+   * so "Kitchen" and "kitchen " count as the same room — plus how many
+   * plants have no location set at all.
+   */
+  function getLocationFacets() {
+    const counts = new Map(); // lowercase trimmed location -> { label, count }
+    let unsetCount = 0;
+
+    PLANTS.forEach(plant => {
+      const loc = resolvedLocation(plant);
+      if (!loc) { unsetCount++; return; }
+      const key = loc.toLowerCase();
+      if (!counts.has(key)) counts.set(key, { label: loc, count: 0 });
+      counts.get(key).count++;
+    });
+
+    const facets = Array.from(counts.values())
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+    return { facets, unsetCount };
+  }
+
+  function matchesLocation(plant, active) {
+    if (!active) return true;
+    const loc = resolvedLocation(plant);
+    if (active.key === UNSET_LOCATION_KEY) return loc === "";
+    return loc.toLowerCase() === active.key;
+  }
+
+  /**
+   * Rebuilds the row of room chips above the plant list. Hidden
+   * entirely until at least one plant has a Location set — with zero
+   * rooms recorded yet, a filter row would just be clutter. See the
+   * Care Log section of a plant's detail page to set one.
+   */
+  function renderLocationFilter() {
+    locationFilterEl.innerHTML = "";
+    const { facets, unsetCount } = getLocationFacets();
+
+    if (PLANTS.length === 0) {
+      locationFilterEl.hidden = true;
+      activeLocation = null;
+      return;
+    }
+
+    if (facets.length === 0) {
+      // No plant has a Location set yet — a chip row would be
+      // pointless, but leave a quiet pointer to where one goes.
+      locationFilterEl.hidden = false;
+      locationFilterEl.appendChild(
+        el("span", "Tip: set a plant's Location in its Care Log to filter by room here.", "location-filter-hint")
+      );
+      activeLocation = null;
+      return;
+    }
+    locationFilterEl.hidden = false;
+
+    function chip(label, key, count, isActive) {
+      const btn = el("button", label + " (" + count + ")", "loc-chip");
+      btn.type = "button";
+      if (isActive) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        // Tapping the already-active chip clears the filter again.
+        activeLocation = (activeLocation && activeLocation.key === key) ? null : { key, label };
+        renderList();
+      });
+      return btn;
+    }
+
+    const allBtn = el("button", "All (" + PLANTS.length + ")", "loc-chip");
+    allBtn.type = "button";
+    if (!activeLocation) allBtn.classList.add("active");
+    allBtn.addEventListener("click", () => { activeLocation = null; renderList(); });
+    locationFilterEl.appendChild(allBtn);
+
+    facets.forEach(f => {
+      const key = f.label.toLowerCase();
+      locationFilterEl.appendChild(chip(f.label, key, f.count, !!activeLocation && activeLocation.key === key));
+    });
+
+    if (unsetCount > 0) {
+      locationFilterEl.appendChild(
+        chip("Unset", UNSET_LOCATION_KEY, unsetCount, !!activeLocation && activeLocation.key === UNSET_LOCATION_KEY)
+      );
+    }
+  }
+
   // ── List view ────────────────────────────────────────────────
+
+  function emptyStateMessage(filteredCount) {
+    if (filteredCount !== 0) return "";
+    const q = searchQuery.trim();
+    if (q && activeLocation) {
+      return `No plants match "${q}" in "${activeLocation.label}". Try a different search or room, or tap + Add plant above.`;
+    }
+    if (q) {
+      return `No plants match "${q}". Try a different search, or tap + Add plant above.`;
+    }
+    if (activeLocation) {
+      return activeLocation.key === UNSET_LOCATION_KEY
+        ? `Every plant has a location set — nice. Try a different room, or tap + Add plant above.`
+        : `No plants in "${activeLocation.label}" yet. Try a different room, or tap + Add plant above.`;
+    }
+    return `No plants yet. Tap + Add plant above.`;
+  }
 
   function renderList() {
     revokeTrackedObjectUrls();
-    const filtered = PLANTS.filter(p => matches(p, searchQuery));
+    renderLocationFilter(); // rebuilt every render, so a just-edited Location shows up immediately
+    const filtered = PLANTS.filter(p => matches(p, searchQuery) && matchesLocation(p, activeLocation));
 
     plantListEl.innerHTML = "";
     plantListEl.hidden = filtered.length === 0;
     emptyState.hidden = filtered.length !== 0;
-    if (filtered.length === 0) emptyQuery.textContent = searchQuery;
+    emptyState.textContent = emptyStateMessage(filtered.length);
 
     resultCount.textContent = PLANTS.length
-      ? (searchQuery
+      ? ((searchQuery || activeLocation)
           ? `${filtered.length} of ${PLANTS.length} plants`
           : `${PLANTS.length} plant${PLANTS.length === 1 ? "" : "s"}`)
       : "";
@@ -259,6 +382,8 @@
 
       const badges = el("div", null, "plant-card-badges");
       if (plant.isLocal) badges.appendChild(el("span", "Local", "badge", "badge-local"));
+      const loc = resolvedLocation(plant);
+      if (loc) badges.appendChild(el("span", loc, "badge", "badge-location"));
       if (plant.glance.difficulty) badges.appendChild(el("span", plant.glance.difficulty, "badge"));
       if (plant.glance.light) badges.appendChild(el("span", plant.glance.light, "badge"));
       body.appendChild(badges);

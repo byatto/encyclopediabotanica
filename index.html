@@ -61,6 +61,9 @@
   <div class="search-row">
     <input id="search" type="search" placeholder="Search plants, family, care notes…" aria-label="Search plants" enterkeyhint="search">
   </div>
+  <!-- Room filter — built by app.js from whatever Locations you've
+       set in plants' Care Logs. Hidden until at least one is set. -->
+  <div id="location-filter" class="location-filter" hidden></div>
 </header>
 
 <!-- ============================================================
@@ -72,7 +75,9 @@
     <button id="btn-add-plant" class="btn btn-add-plant">+ Add plant</button>
   </div>
   <ul id="plant-list" class="plant-list"></ul>
-  <p id="empty-state" class="empty-state" hidden>No plants match "<span></span>". Try a different search, or tap <strong>+ Add plant</strong> above.</p>
+  <!-- Text is filled in by app.js (emptyStateMessage) — it depends
+       on which of search / room filter is active. -->
+  <p id="empty-state" class="empty-state" hidden></p>
 </main>
 
 <!-- ============================================================
