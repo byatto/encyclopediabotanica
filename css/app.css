@@ -178,6 +178,51 @@ button {
   letter-spacing: 0.02em;
 }
 
+/* ── Room ("Location") filter chips ──────────────────────────
+   A horizontally-scrolling row, same visual language as .badge but
+   interactive (real <button>s) and with an "active" state borrowed
+   from .btn-primary's solid fill. Built by app.js's
+   renderLocationFilter() — hidden entirely until at least one plant
+   has a Location set. */
+.location-filter {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px 14px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.loc-chip {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  background: var(--surface);
+  color: var(--soft);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.loc-chip.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.badge-location {
+  background: transparent;
+  border: 1px solid var(--hair);
+  color: var(--soft);
+}
+
+.location-filter-hint {
+  font-size: 12px;
+  color: var(--faint);
+  padding: 6px 2px;
+}
+
 /* ── View switching ───────────────────────────────────────── */
 .view[hidden] { display: none; }
 

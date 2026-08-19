@@ -98,6 +98,22 @@ repo photo. Repo photos aren't precached up front (to keep the initial
 install small) — each one is cached automatically the first time it's
 viewed while online, and stays available offline after that.
 
+## Watering rounds by room
+
+Open a plant's Care Log and fill in **Location** with wherever it actually
+lives — "Living room", "Kitchen windowsill", whatever you call it. As soon
+as any plant has one set, a row of room chips appears on the home screen,
+just under search: tap one (e.g. **Kitchen**) to see only the plants in
+that room, tap it again (or **All**) to go back to everything. An **Unset**
+chip covers anything without a Location yet. Chips are grouped
+case/spacing-insensitively, so "Kitchen" and "kitchen " count as the same
+room — but the exact room list is entirely up to you, there's nothing to
+configure. It combines with the search box too, so "kitchen" + "peace
+lily" narrows to just that.
+
+Like the rest of the Care Log, Location is saved on this device only —
+back it up the same way (see "Your data" below).
+
 ## Your data
 
 Three things live only on this device — never uploaded, never synced,
