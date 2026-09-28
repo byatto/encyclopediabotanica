@@ -35,6 +35,7 @@
   const viewList   = document.getElementById("view-list");
   const viewDetail = document.getElementById("view-detail");
   const viewAbout  = document.getElementById("view-about");
+  const viewWatering = document.getElementById("view-watering");
 
   const searchInput  = document.getElementById("search");
   const resultCount  = document.getElementById("result-count");
@@ -42,6 +43,11 @@
   const emptyState   = document.getElementById("empty-state");
   const btnAddPlant  = document.getElementById("btn-add-plant");
   const locationFilterEl = document.getElementById("location-filter");
+  const btnWatering  = document.getElementById("btn-watering");
+
+  const wateringListEl    = document.getElementById("watering-list");
+  const wateringResultCount = document.getElementById("watering-result-count");
+  const wateringEmptyState  = document.getElementById("watering-empty-state");
 
   const detailContent = document.getElementById("detail-content");
   const btnBack        = document.getElementById("btn-back");
@@ -308,7 +314,7 @@
       btn.addEventListener("click", () => {
         // Tapping the already-active chip clears the filter again.
         activeLocation = (activeLocation && activeLocation.key === key) ? null : { key, label };
-        renderList();
+        rerenderActiveView();
       });
       return btn;
     }
@@ -316,7 +322,7 @@
     const allBtn = el("button", "All (" + PLANTS.length + ")", "loc-chip");
     allBtn.type = "button";
     if (!activeLocation) allBtn.classList.add("active");
-    allBtn.addEventListener("click", () => { activeLocation = null; renderList(); });
+    allBtn.addEventListener("click", () => { activeLocation = null; rerenderActiveView(); });
     locationFilterEl.appendChild(allBtn);
 
     facets.forEach(f => {
@@ -329,6 +335,72 @@
         chip("Unset", UNSET_LOCATION_KEY, unsetCount, !!activeLocation && activeLocation.key === UNSET_LOCATION_KEY)
       );
     }
+  }
+
+  // ── Watering log ─────────────────────────────────────────────
+  // The whole point: you water "by feel", and this keeps a plain
+  // record of when and roughly how much, per plant, so a pattern
+  // can actually be seen over time — see js/store.js for storage.
+  // Everything here just reads/formats that data for display; the
+  // storing itself is a couple of one-line calls to PlantStore.
+
+  const WATERING_AMOUNTS = ["Light", "Normal", "Heavy"];
+
+  function daysSince(isoDate) {
+    return (Date.now() - new Date(isoDate).getTime()) / 86400000;
+  }
+
+  function formatWateringWhen(isoDate) {
+    const days = Math.floor(daysSince(isoDate));
+    if (days <= 0) return "today";
+    if (days === 1) return "1 day ago";
+    return days + " days ago";
+  }
+
+  function formatWateringDate(isoDate) {
+    return new Date(isoDate).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  /**
+   * Summarises one plant's watering history: when it was last
+   * watered (and with how much), and — once there are at least two
+   * entries — the average number of days between waterings, worked
+   * out from this plant's own history rather than guessed from its
+   * glance.water text. That average is the "data to back up the
+   * plan" this feature exists for.
+   */
+  function wateringSummary(plant) {
+    const entries = PlantStore.getWaterings(plant.id); // oldest first
+    if (entries.length === 0) return { count: 0, lastAt: null, lastAmount: "", avgDays: null };
+
+    const last = entries[entries.length - 1];
+    let avgDays = null;
+    if (entries.length >= 2) {
+      const firstTime = new Date(entries[0].at).getTime();
+      const lastTime = new Date(last.at).getTime();
+      avgDays = (lastTime - firstTime) / 86400000 / (entries.length - 1);
+    }
+    return { count: entries.length, lastAt: last.at, lastAmount: last.amount || "", avgDays };
+  }
+
+  function wateringSummaryText(summary) {
+    if (!summary.lastAt) return "No waterings logged yet.";
+    let text = "Last watered " + formatWateringWhen(summary.lastAt);
+    text += summary.lastAmount ? " (" + summary.lastAmount + ")." : ".";
+    if (summary.avgDays != null) {
+      text += " Averaging every " + Math.round(summary.avgDays) + " days over " + summary.count + " waterings.";
+    }
+    return text;
+  }
+
+  // Sort key for "how much this plant needs attention": a plant
+  // never watered sorts as if it were watered an infinite time ago
+  // — i.e. first, alongside/ahead of the longest-overdue plants —
+  // since "no data at all" deserves at least as much attention as
+  // "it's been a while".
+  function wateringUrgency(plant) {
+    const summary = wateringSummary(plant);
+    return summary.lastAt ? daysSince(summary.lastAt) : Infinity;
   }
 
   // ── List view ────────────────────────────────────────────────
@@ -391,6 +463,65 @@
       append(a, thumbEl(plant), body);
       li.appendChild(a);
       plantListEl.appendChild(li);
+    });
+  }
+
+  // ── Watering Status view ────────────────────────────────────
+  // The same plant list, sorted by how long it's been (longest/
+  // never-watered first) instead of alphabetically-by-family, with
+  // a one-tap way to log a watering right from this screen — so a
+  // whole round can be logged without opening each plant in turn.
+  // Respects the same search box and room filter as the home list.
+
+  function renderWateringStatus() {
+    revokeTrackedObjectUrls();
+    renderLocationFilter();
+    const filtered = PLANTS
+      .filter(p => matches(p, searchQuery) && matchesLocation(p, activeLocation))
+      .slice()
+      .sort((a, b) => wateringUrgency(b) - wateringUrgency(a));
+
+    wateringListEl.innerHTML = "";
+    wateringListEl.hidden = filtered.length === 0;
+    wateringEmptyState.hidden = filtered.length !== 0;
+    if (filtered.length === 0) {
+      wateringEmptyState.textContent = (searchQuery.trim() || activeLocation)
+        ? "No plants match the current search/room filter."
+        : "No plants yet.";
+    }
+
+    wateringResultCount.textContent = filtered.length
+      ? `${filtered.length} plant${filtered.length === 1 ? "" : "s"}, longest-unwatered first`
+      : "";
+
+    filtered.forEach(plant => {
+      const li = el("li", null, "watering-row");
+
+      const a = el("a", null, "watering-row-link");
+      a.href = "#/plant/" + encodeURIComponent(plant.id);
+      const body = el("div", null, "watering-row-body");
+      append(body, el("div", plant.latin, "plant-card-latin", "latin"));
+      const commonLine = el("div", null, "plant-card-common");
+      commonLine.appendChild(document.createTextNode(plant.common));
+      body.appendChild(commonLine);
+      body.appendChild(el("div", wateringSummaryText(wateringSummary(plant)), "watering-summary-line"));
+      append(a, thumbEl(plant), body);
+      li.appendChild(a);
+
+      const actions = el("div", null, "watering-row-actions");
+      WATERING_AMOUNTS.forEach(amount => {
+        const btn = el("button", amount, "watering-amount-btn");
+        btn.type = "button";
+        btn.addEventListener("click", () => {
+          PlantStore.addWatering(plant.id, { amount });
+          showToast("Logged: " + amount + " watering");
+          renderWateringStatus(); // re-sort + refresh summaries immediately
+        });
+        actions.appendChild(btn);
+      });
+      li.appendChild(actions);
+
+      wateringListEl.appendChild(li);
     });
   }
 
@@ -496,6 +627,53 @@
     return controls;
   }
 
+  /**
+   * Builds the "Watering Log" section: quick one-tap buttons to log
+   * a watering right now, a plain-language summary (last watered +
+   * personal average once there's enough history), and the history
+   * itself with a way to remove an entry logged by mistake.
+   */
+  function buildWateringLogSection(plant) {
+    const sec = el("section", null, "d-section", "watering-log-section");
+    sec.appendChild(el("h2", "Watering Log"));
+
+    sec.appendChild(el("p", wateringSummaryText(wateringSummary(plant)), "watering-summary"));
+
+    const btnRow = el("div", null, "watering-log-buttons");
+    WATERING_AMOUNTS.forEach(amount => {
+      const btn = el("button", amount, "btn", "watering-amount-btn");
+      btn.type = "button";
+      btn.addEventListener("click", () => {
+        PlantStore.addWatering(plant.id, { amount });
+        showToast("Logged: " + amount + " watering");
+        renderDetail(plant.id); // rebuilds the section with the new entry/summary
+      });
+      btnRow.appendChild(btn);
+    });
+    sec.appendChild(btnRow);
+
+    const entries = PlantStore.getWaterings(plant.id).slice().reverse(); // newest first for display
+    if (entries.length > 0) {
+      const history = el("ul", null, "watering-history");
+      entries.forEach(entry => {
+        const row = el("li", null, "watering-history-row");
+        const text = formatWateringDate(entry.at) + (entry.amount ? " — " + entry.amount : "");
+        row.appendChild(el("span", text));
+        const removeBtn = el("button", "Remove", "text-link-btn");
+        removeBtn.type = "button";
+        removeBtn.addEventListener("click", () => {
+          PlantStore.deleteWatering(plant.id, entry.id);
+          renderDetail(plant.id);
+        });
+        row.appendChild(removeBtn);
+        history.appendChild(row);
+      });
+      sec.appendChild(history);
+    }
+
+    return sec;
+  }
+
   function renderDetail(id) {
     revokeTrackedObjectUrls();
     const plant = PLANTS.find(p => p.id === id);
@@ -541,7 +719,10 @@
     append(detailContent,
       careSection("About", plant.about),
       careSection("Growing Cycle", plant.cycle),
-      careSection("Watering", plant.watering),
+      careSection("Watering", plant.watering)
+    );
+    detailContent.appendChild(buildWateringLogSection(plant));
+    append(detailContent,
       careSection("Feeding", plant.feeding),
       careSection("Pests & Stress Signals", plant.pests),
       careSection("Origins & Notes", plant.origins)
@@ -629,6 +810,7 @@
     const parts = hash.split("/").filter(Boolean);
     if (parts[0] === "plant" && parts[1]) return { view: "plant", id: decodeURIComponent(parts[1]) };
     if (parts[0] === "about") return { view: "about" };
+    if (parts[0] === "watering") return { view: "watering" };
     return { view: "list" };
   }
 
@@ -636,6 +818,7 @@
     viewList.hidden   = name !== "list";
     viewDetail.hidden = name !== "plant";
     viewAbout.hidden  = name !== "about";
+    viewWatering.hidden = name !== "watering";
     window.scrollTo(0, 0);
   }
 
@@ -647,11 +830,24 @@
     } else if (r.view === "about") {
       renderAbout();
       showView("about");
+    } else if (r.view === "watering") {
+      document.title = "Watering Status — Encyclopedia Botanica";
+      renderWateringStatus();
+      showView("watering");
     } else {
       document.title = "Encyclopedia Botanica";
       renderList();
       showView("list");
     }
+  }
+
+  // Re-renders whichever of the list/watering views is currently on
+  // screen — used by search and the room filter, both of which are
+  // visible (and should keep working) from either one.
+  function rerenderActiveView() {
+    const view = parseHash().view;
+    if (view === "watering") renderWateringStatus();
+    else if (view === "list") renderList();
   }
 
   window.addEventListener("hashchange", route);
@@ -675,7 +871,7 @@
 
   searchInput.addEventListener("input", () => {
     searchQuery = searchInput.value;
-    if (parseHash().view === "list") renderList();
+    rerenderActiveView();
   });
 
   // ── Add plant ────────────────────────────────────────────────
@@ -696,6 +892,12 @@
     location.hash = location.hash === "#/about" ? "#/" : "#/about";
   });
 
+  if (btnWatering) {
+    btnWatering.addEventListener("click", () => {
+      location.hash = location.hash === "#/watering" ? "#/" : "#/watering";
+    });
+  }
+
   // ── Export / import / clear (About view) ────────────────────
   // Backups now cover three things: care-log text (PlantStore /
   // localStorage), and locally-added plants + their photos
@@ -706,12 +908,13 @@
     const today = new Date().toISOString().slice(0, 10);
     let backup;
     try {
-      const logsExport = JSON.parse(PlantStore.exportJSON()); // { version: 1, logs: {...} }
+      const logsExport = JSON.parse(PlantStore.exportJSON()); // { version: 1, logs: {...}, waterings: {...} }
       const db = global_PlantDB();
       const dbExport = db ? await db.exportAll() : { localPlants: [], photos: [] };
       backup = {
         version: 2,
         logs: logsExport.logs || {},
+        waterings: logsExport.waterings || {},
         localPlants: dbExport.localPlants,
         photos: dbExport.photos
       };
@@ -749,17 +952,17 @@
         const looksLikeV2 = parsed && (Array.isArray(parsed.localPlants) || Array.isArray(parsed.photos));
 
         if (looksLikeV2) {
-          if (parsed.logs && typeof parsed.logs === "object") {
-            PlantStore.importJSON(JSON.stringify({ version: 1, logs: parsed.logs }), { merge: true });
+          if ((parsed.logs && typeof parsed.logs === "object") || (parsed.waterings && typeof parsed.waterings === "object")) {
+            PlantStore.importJSON(JSON.stringify({ version: 1, logs: parsed.logs || {}, waterings: parsed.waterings || {} }), { merge: true });
           }
           const db = global_PlantDB();
           if (db) await db.importAll({ localPlants: parsed.localPlants, photos: parsed.photos });
           await window.AppRefresh.refresh();
-          showToast("Backup restored (logs, local plants & photos)");
+          showToast("Backup restored (logs, waterings, local plants & photos)");
         } else {
           PlantStore.importJSON(raw, { merge: true });
           showToast("Backup restored (care-log data)");
-          if (parseHash().view === "plant") route();
+          route(); // refreshes whichever view is showing — logs/waterings can affect any of them
         }
       } catch (err) {
         alert("Import failed: " + err.message);
@@ -770,7 +973,7 @@
   });
 
   document.getElementById("btn-clear").addEventListener("click", () => {
-    if (confirm("Delete every saved log entry and note on this device? Your plants.js reference data is unaffected. This can't be undone.")) {
+    if (confirm("Delete every saved log entry, note, and watering record on this device? Your plants.js reference data is unaffected. This can't be undone.")) {
       PlantStore.clearAll();
       showToast("All saved data cleared");
       if (parseHash().view === "plant") route();

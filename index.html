@@ -16,9 +16,12 @@
   ENCYCLOPEDIA BOTANICA — mobile app shell
   ================================================================
   This is the installable PWA: search your plants, tap through to
-  a phone-friendly detail page, and edit a care log that's saved
-  on-device (see js/store.js). Plant reference data lives in
-  js/plants.js, shared with print.html (the A4/PDF export view).
+  a phone-friendly detail page, and edit a care log — including a
+  Watering Log you build up over time by tapping Light/Normal/Heavy
+  — that's saved on-device (see js/store.js). Plant reference data
+  lives in js/plants.js, shared with print.html (the A4/PDF export
+  view). A dedicated Watering Status view (#/watering) lists every
+  plant longest-since-watered first, for doing a room-by-room round.
 
   Two more things live only on this device, in IndexedDB rather
   than js/store.js's localStorage (see js/db.js for why): photos
@@ -50,6 +53,7 @@
       </span>
       Encyclopedia Botanica
     </h1>
+    <button id="btn-watering" class="btn btn-watering-nav">Watering</button>
     <button id="btn-about" class="icon-btn" aria-label="About & settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/>
@@ -78,6 +82,28 @@
   <!-- Text is filled in by app.js (emptyStateMessage) — it depends
        on which of search / room filter is active. -->
   <p id="empty-state" class="empty-state" hidden></p>
+</main>
+
+<!-- ============================================================
+     WATERING STATUS VIEW
+     Same plants, sorted longest-since-watered first, with a
+     one-tap way to log a watering right from this list — see
+     renderWateringStatus() in js/app.js.
+     ============================================================ -->
+<main id="view-watering" class="view" hidden>
+  <button class="back-btn" onclick="location.hash='#/'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+    Back
+  </button>
+  <div class="container watering-status-intro">
+    <h2>Watering Status</h2>
+    <p>Sorted by longest since last watered (never-logged plants first). Tap an amount to log a watering right here, or tap a plant for its full history.</p>
+  </div>
+  <div id="watering-result-count" class="result-count" aria-live="polite"></div>
+  <ul id="watering-list" class="plant-list watering-list"></ul>
+  <p id="watering-empty-state" class="empty-state" hidden></p>
 </main>
 
 <!-- ============================================================
@@ -110,6 +136,12 @@
     </div>
 
     <div class="about-section">
+      <h2>Watering log</h2>
+      <p>Each plant's detail page has a Watering Log: tap Light/Normal/Heavy to log a watering, with the date saved automatically. Once a plant has two or more logged, its own average interval shows up alongside the last-watered date — actual data from your own watering habits, not a generic guess.</p>
+      <p>Tap <strong>Watering</strong> at the top of the app for a room-by-room view of every plant, longest-since-watered first, with the same one-tap logging right there — handy for doing a full round without opening each plant.</p>
+    </div>
+
+    <div class="about-section">
       <h2>Install</h2>
       <p>On Android Chrome: tap the ⋮ menu → <strong>Add to Home screen</strong> / <strong>Install app</strong>. Once installed it works fully offline.</p>
       <button id="btn-install-about" class="btn btn-primary" hidden>Install now</button>
@@ -120,9 +152,9 @@
       <div id="storage-notice" class="notice warn" hidden>
         This browser isn't persisting saved data (private/incognito mode, or storage is disabled) — anything you log will be lost when you close the app.
       </div>
-      <p>Care-log notes, photos you set on a plant, and any plants you've added with <strong>+ Add plant</strong> all live only on this device — nothing is ever uploaded anywhere. When you first add a photo, the app also asks the browser to protect this data from automatic cleanup (no prompt to you either way — some browsers grant it silently). Export a backup occasionally, especially before reinstalling or switching phones — photos make the backup file a few MB, which is expected.</p>
+      <p>Care-log notes, your watering log, photos you set on a plant, and any plants you've added with <strong>+ Add plant</strong> all live only on this device — nothing is ever uploaded anywhere. When you first add a photo, the app also asks the browser to protect this data from automatic cleanup (no prompt to you either way — some browsers grant it silently). Export a backup occasionally, especially before reinstalling or switching phones — photos make the backup file a few MB, which is expected.</p>
       <div class="about-actions">
-        <button id="btn-export" class="btn btn-block">Export data (logs, local plants & photos)</button>
+        <button id="btn-export" class="btn btn-block">Export data (logs, waterings, local plants & photos)</button>
         <label class="btn btn-block" for="import-file" style="cursor:pointer;">Import data (merge from backup)</label>
         <input id="import-file" type="file" accept="application/json,.json" class="visually-hidden">
         <button id="btn-clear" class="btn btn-danger btn-block">Clear all saved data</button>

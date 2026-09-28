@@ -23,7 +23,7 @@
 // reload to pick it up.
 // =============================================================
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const SHELL_CACHE = "eb-shell-" + CACHE_VERSION;
 const PHOTO_CACHE = "eb-photos-" + CACHE_VERSION;
 
