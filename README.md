@@ -98,30 +98,54 @@ repo photo. Repo photos aren't precached up front (to keep the initial
 install small) — each one is cached automatically the first time it's
 viewed while online, and stays available offline after that.
 
+## Watering log
+
+Watering "by feel" is still the idea — this just keeps a record of it. Open
+any plant and its **Watering Log** section has three buttons: **Light**,
+**Normal**, **Heavy**. Tap one and it's logged immediately, with today's
+date — no extra steps. Once a plant has two or more logged, you'll see
+your own average interval for it ("Averaging every 9 days over 4
+waterings") alongside the last-watered date, worked out from your actual
+history for that plant rather than a generic guess. Every entry stays
+listed below, in case you want to check the log or remove one you tapped
+by mistake.
+
+Tap **Watering** at the top of the app for the same three buttons across
+every plant at once, sorted longest-since-watered first (a plant with no
+watering logged yet sorts to the very top) — open it, work down the list
+tapping an amount as you go, and you've logged a whole round without
+opening a single plant's detail page.
+
 ## Watering rounds by room
 
 Open a plant's Care Log and fill in **Location** with wherever it actually
 lives — "Living room", "Kitchen windowsill", whatever you call it. As soon
-as any plant has one set, a row of room chips appears on the home screen,
-just under search: tap one (e.g. **Kitchen**) to see only the plants in
-that room, tap it again (or **All**) to go back to everything. An **Unset**
+as any plant has one set, a row of room chips appears at the top of the
+app — on both the home screen and the Watering Status view — just under
+search: tap one (e.g. **Kitchen**) to see only the plants in that room,
+tap it again (or **All**) to go back to everything. An **Unset**
 chip covers anything without a Location yet. Chips are grouped
 case/spacing-insensitively, so "Kitchen" and "kitchen " count as the same
 room — but the exact room list is entirely up to you, there's nothing to
 configure. It combines with the search box too, so "kitchen" + "peace
 lily" narrows to just that.
 
+Combine the two: filter to a room on the Watering Status view, then tap
+straight down the list as you go round with the watering can.
+
 Like the rest of the Care Log, Location is saved on this device only —
 back it up the same way (see "Your data" below).
 
 ## Your data
 
-Three things live only on this device — never uploaded, never synced,
+Four things live only on this device — never uploaded, never synced,
 never sent anywhere (see "Privacy" below):
 
 - **Care log & notes** — acquired date, source, location, last repotted,
   pot/soil, propagation, free-text notes. Saved as you type (browser
   local storage).
+- **Watering log** — every Light/Normal/Heavy tap, with its date (browser
+  local storage, same as the care log above).
 - **Photos** you've set on a plant (browser IndexedDB). The first time you
   save one, the app also asks the browser to protect this data from
   automatic cleanup under storage pressure — most browsers grant this
@@ -129,19 +153,22 @@ never sent anywhere (see "Privacy" below):
 - **Locally-added plants** from the **+ Add plant** flow, until you
   publish them (see "Adding a plant" above).
 
-All three are tied to this one device/browser — reinstalling the browser,
+All four are tied to this one device/browser — reinstalling the browser,
 clearing site data, or switching phones loses them unless you've backed
 up. From **⋯ menu → About & settings**:
 
-- **Export data** — downloads a single `.json` backup of all three. With
+- **Export data** — downloads a single `.json` backup of all four. With
   photos included, this can run to several MB — that's expected.
 - **Import data** — merges a previously exported backup back in (e.g.
-  after reinstalling, or moving to a new phone). Also accepts older
-  log-only backup files from before photos/local plants existed.
-- **Clear all saved data** — wipes on-device logs (the reference data in
-  `js/plants.js` is never touched; photos and local plants aren't
-  affected by this button — delete a local plant from its own detail page,
-  or a photo via **Remove photo**).
+  after reinstalling, or moving to a new phone) without discarding
+  anything logged on this device since — watering history in particular
+  is merged entry-by-entry rather than one side overwriting the other.
+  Also accepts older log-only backup files from before photos/local
+  plants/watering existed.
+- **Clear all saved data** — wipes on-device logs and watering history
+  (the reference data in `js/plants.js` is never touched; photos and
+  local plants aren't affected by this button — delete a local plant from
+  its own detail page, or a photo via **Remove photo**).
 
 Export a backup occasionally, especially before clearing your browser data
 or switching devices.

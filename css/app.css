@@ -737,3 +737,106 @@ button {
   .plant-list { grid-template-columns: 1fr 1fr; display: grid; }
   .list-toolbar { max-width: 100%; }
 }
+
+/* ============================================================
+   WATERING LOG
+   Reuses the same tokens/patterns as everything above — .btn,
+   .d-section, .plant-card-* shell — rather than a new visual style.
+   ============================================================ */
+
+/* ── Topbar nav button ────────────────────────────────────── */
+.btn-watering-nav {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 10px;
+  border: 1px solid var(--hair);
+  background: transparent;
+  color: var(--soft);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.btn-watering-nav:hover { border-color: var(--green); color: var(--green); }
+
+/* ── Watering Status view intro text ─────────────────────── */
+.watering-status-intro { padding-top: 16px; }
+.watering-status-intro h2 {
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.watering-status-intro p { font-size: 13.5px; color: var(--soft); line-height: 1.6; margin: 0; }
+
+/* ── Watering Status rows ─────────────────────────────────── */
+/* Not a single <a>, unlike .plant-card-link — the amount buttons
+   can't sit inside a link, so the card is an <li> holding a link
+   (thumb + name + summary) and a separate actions row below it. */
+.watering-row {
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+}
+.watering-row-link {
+  display: flex;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+.watering-row-body { flex: 1; min-width: 0; padding-top: 1px; }
+.watering-summary-line {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--soft);
+  line-height: 1.4;
+}
+
+.watering-row-actions {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hair-soft);
+  display: flex;
+  gap: 8px;
+}
+
+.watering-amount-btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  background: var(--paper);
+  color: var(--soft);
+  cursor: pointer;
+}
+.watering-amount-btn:hover { border-color: var(--green); color: var(--green); }
+.watering-amount-btn:active { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* ── Watering Log section, in the plant detail view ──────── */
+.watering-log-buttons {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+.watering-log-buttons .watering-amount-btn { padding: 10px 0; font-size: 13px; }
+
+.watering-history {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+.watering-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--hair-soft);
+  font-size: 13px;
+  color: var(--soft);
+}
+.watering-history-row:last-child { border-bottom: none; }
